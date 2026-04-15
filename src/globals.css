@@ -2,3 +2,8 @@
 
 /* Salient UI globals — design tokens (colours, fonts, radius) */
 @import "@journey-further/salient-ui/globals-css";
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

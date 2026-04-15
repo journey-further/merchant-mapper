@@ -26,8 +26,15 @@ export interface ColumnsResponse {
   colCount: number;
 }
 
+export interface NumericFilterOption {
+  min: number;
+  max: number;
+  type: 'price' | 'numeric';
+}
+
 export interface FiltersResponse {
   options: Record<string, string[]>;
+  numericOptions: Record<string, NumericFilterOption>;
   filteredCount: number;
   totalCount: number;
   preview: Record<string, string>[];
@@ -65,7 +72,7 @@ export interface ColourMappingPostResponse {
     eligible: number;
     pctMapped: number;
   };
-  unmapped: Array<{ productColour: string; suggestion: string }>;
+  unmapped: Array<{ productColour: string; suggestion: string; productCount: number }>;
   allowedGeneric: string[];
 }
 
@@ -139,4 +146,5 @@ export interface GadsChartsResponse {
 export interface BubbleDataResponse {
   items: Array<{ title: string; clicks: number; category: string }>;
   total: number;
+  groupCandidates: string[];
 }

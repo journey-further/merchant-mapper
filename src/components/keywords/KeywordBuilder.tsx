@@ -130,7 +130,9 @@ export default function KeywordBuilder() {
                 <p className="text-sm font-medium">Preview</p>
                 <DataTable
                   rows={query.data.perListTables[index].rows}
-                  columns={query.data.perListTables[index].displayCols}
+                  columns={['keyword', 'Product Count', 'Unique Product Groups'].filter(
+                    (c) => query.data!.perListTables[index].displayCols.includes(c)
+                  )}
                   maxHeight="260px"
                 />
               </div>

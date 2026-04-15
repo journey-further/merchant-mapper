@@ -6,7 +6,11 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import SectionShell from '../shared/SectionShell';
 import DataTable from '../shared/DataTable';
 
-export default function NormalisedFeedPreview() {
+interface Props {
+  onNext?: () => void;
+}
+
+export default function NormalisedFeedPreview({ onNext }: Props) {
   const store = useWorkflowStore();
   const { sessionId, rawDfBlobUrl, colourMapBlobUrl } = store;
   const state = buildWorkflowState(store);
@@ -61,6 +65,11 @@ export default function NormalisedFeedPreview() {
             <Button asChild size="sm" variant="outline">
               <a href={xlsxHref}>Download XLSX</a>
             </Button>
+            {onNext && (
+              <Button size="sm" className="ml-auto" onClick={onNext}>
+                Next: Build Keywords →
+              </Button>
+            )}
           </div>
 
           <DataTable rows={query.data.preview} maxHeight="360px" />

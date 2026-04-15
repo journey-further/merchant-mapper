@@ -79,6 +79,7 @@ export async function getFilters(params: {
   rawDfUrl: string;
   keepMap: Record<string, boolean>;
   filters: Record<string, string[]>;
+  numericFilters?: Record<string, { gte?: number; lte?: number }>;
 }): Promise<FiltersResponse> {
   return post('/api/filters', params);
 }
@@ -168,6 +169,14 @@ export async function getGadsConstants(): Promise<GadsConstantsResponse> {
   return get('/api/gads-constants');
 }
 
+export async function fetchGadsVolumes(params: {
+  combinedDfBlobUrl: string;
+  geoIds: string[];
+  languageId: string;
+}): Promise<GadsUploadResponse> {
+  return post('/api/gads-fetch', params);
+}
+
 export async function uploadGadsFile(params: {
   blobUrl: string;
   filename: string;
@@ -197,13 +206,15 @@ export async function getBubbleData(params: {
   session: string;
   rawDfUrl: string;
   n: number;
-  catSrcCol?: string;
+  groupCol?: string;
+  state?: object;
 }): Promise<BubbleDataResponse> {
   return get('/api/bubble-data', {
     session: params.session,
     rawDfUrl: params.rawDfUrl,
     n: String(params.n),
-    ...(params.catSrcCol ? { catSrcCol: params.catSrcCol } : {}),
+    ...(params.groupCol ? { groupCol: params.groupCol } : {}),
+    ...(params.state ? { state: JSON.stringify(params.state) } : {}),
   });
 }
 

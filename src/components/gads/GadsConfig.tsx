@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@journey-further/salient-ui/ui/button';
-import { getGadsConstants, uploadGadsFile } from '../../lib/api';
-import { uploadFileToBlob } from '../../lib/blobUpload';
+import { getGadsConstants, fetchGadsVolumes } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
 import SectionShell from '../shared/SectionShell';
+
+const UK_CRITERIA_ID = '2826';
+const ENGLISH_LANGUAGE_ID = '1000';
 
 export default function GadsConfig() {
   const {
     sessionId,
+    combinedDfBlobUrl,
     geoIds,
     languageId,
     setGeoIds,
@@ -15,49 +19,82 @@ export default function GadsConfig() {
     setGadsDfBlobUrl,
   } = useWorkflowStore();
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   const query = useQuery({
     queryKey: ['gads-constants'],
     queryFn: () => getGadsConstants(),
   });
 
-  async function onFileChange(file: File) {
-    const blobUrl = await uploadFileToBlob(file);
-    const result = await uploadGadsFile({ blobUrl, filename: file.name });
-    setGadsDfBlobUrl(result.gadsDfBlobUrl);
+  // Single country value (first entry or UK default)
+  const selectedCountry = geoIds[0] ?? UK_CRITERIA_ID;
+
+  async function onFetch() {
+    if (!combinedDfBlobUrl) return;
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const result = await fetchGadsVolumes({
+        combinedDfBlobUrl,
+        geoIds: [selectedCountry],
+        languageId,
+      });
+      setGadsDfBlobUrl(result.gadsDfBlobUrl);
+      setSuccess(`Fetched ${result.rowCount.toLocaleString()} volume rows.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to fetch Google Ads volumes.');
+    } finally {
+      setLoading(false);
+    }
   }
 
+  // Sort countries A-Z, but keep UK at the top
+  const sortedCountries = query.data
+    ? [...query.data.countries].sort((a, b) => {
+        if (a.criteriaId === UK_CRITERIA_ID) return -1;
+        if (b.criteriaId === UK_CRITERIA_ID) return 1;
+        return a.name.localeCompare(b.name);
+      })
+    : [];
+
   return (
-    <SectionShell title="Google Ads Config" loading={query.isLoading}>
+    <SectionShell title="Google Ads Search Volumes" loading={query.isLoading}>
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Upload a historical metrics export to power the Google Ads results and charts.
+          Fetch seasonal search volume history. Defaults to United Kingdom and English.
         </p>
+
+        {!combinedDfBlobUrl && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            No keyword combinations generated yet. Complete the Keywords tab first.
+          </div>
+        )}
 
         {query.data && (
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2 text-sm">
-              <span className="font-medium">Countries</span>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium">Country</span>
               <select
-                multiple
-                className="h-40 w-full rounded-md border bg-background px-3 py-2"
-                value={geoIds}
-                onChange={(e) =>
-                  setGeoIds(Array.from(e.target.selectedOptions).map((option) => option.value))
-                }
+                className="block w-full rounded-md border bg-background px-3 py-2"
+                value={selectedCountry}
+                onChange={(e) => setGeoIds([e.target.value])}
               >
-                {query.data.countries.map((country) => (
+                {sortedCountries.map((country) => (
                   <option key={country.criteriaId} value={country.criteriaId}>
-                    {country.name} ({country.countryCode})
+                    {country.name}
                   </option>
                 ))}
               </select>
             </label>
 
-            <label className="space-y-2 text-sm">
+            <label className="space-y-1 text-sm">
               <span className="font-medium">Language</span>
               <select
                 className="block w-full rounded-md border bg-background px-3 py-2"
-                value={languageId}
+                value={languageId || ENGLISH_LANGUAGE_ID}
                 onChange={(e) => setLanguageId(e.target.value)}
               >
                 {query.data.languages.map((language) => (
@@ -70,29 +107,18 @@ export default function GadsConfig() {
           </div>
         )}
 
-        <div className="rounded-md border p-4">
-          <label className="block text-sm font-medium">Metrics export</label>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Expected columns are the same as the old Flask app’s `gads_df` export, including `keyword_norm`, `year`, `month`, and `monthly_searches`.
-          </p>
-          <div className="mt-3">
-            <Button asChild size="sm" variant="outline" disabled={!sessionId}>
-              <label>
-                Upload metrics file
-                <input
-                  type="file"
-                  className="hidden"
-                  accept=".csv,.xlsx,.xls,.tsv,.txt"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void onFileChange(file);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-            </Button>
-          </div>
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            onClick={() => void onFetch()}
+            disabled={loading || !combinedDfBlobUrl || !sessionId}
+          >
+            {loading ? 'Fetching…' : 'Fetch Google Ads volumes'}
+          </Button>
         </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {success && <p className="text-sm text-green-700">{success}</p>}
       </div>
     </SectionShell>
   );

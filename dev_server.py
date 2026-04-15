@@ -36,12 +36,15 @@ from api._lib.core.feed_processor import (
     RECOMMENDED_RAW,
     apply_column_selection,
     apply_filters,
+    apply_numeric_filters,
     count_products,
     default_keep_map,
     derive_age_gender_segment,
     filter_options,
+    numeric_filter_options,
+    split_price_columns,
 )
-from api._lib.core.gads_client import load_gads_constants
+from api._lib.core.gads_client import load_gads_constants, get_gads_client_and_customer_id, fetch_historical_metrics_gads
 from api._lib.core.gads_opportunity import compute_opportunity, compute_sales_opportunity
 from api._lib.core.keyword_builder import make_keywords
 from api._lib.core.product_groups import (
@@ -52,6 +55,16 @@ from api._lib.core.product_groups import (
     group_candidates,
 )
 from api._lib.core.utils import norm
+
+# Load .env if present (for local Google Ads credentials)
+_env_path = os.path.join(os.path.dirname(__file__), ".env")
+if os.path.exists(_env_path):
+    with open(_env_path) as _ef:
+        for _line in _ef:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _, _v = _line.partition("=")
+                os.environ.setdefault(_k.strip(), _v.strip())
 
 UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "merchant-mapper-dev")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -201,6 +214,8 @@ def _get_processed_df(raw_df: pd.DataFrame, params: dict) -> pd.DataFrame:
     if cat_src_col and cat_src_col in df.columns:
         df = extract_categories(df, cat_src_col, want_main, want_penultimate, want_final)
 
+    df = split_price_columns(df)
+
     return df
 
 
@@ -334,31 +349,63 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/gads-constants":
             countries, languages = load_gads_constants()
-            return self._send_json(200, {
-                "countries": countries.to_dict(orient="records") if countries is not None else [],
-                "languages": languages.to_dict(orient="records") if languages is not None else [],
-            })
+            if countries is not None:
+                countries = countries.rename(columns={"id": "criteriaId", "country_code": "countryCode"})
+                country_rows = countries[["criteriaId", "name", "countryCode"]].to_dict(orient="records")
+            else:
+                country_rows = []
+            if languages is not None:
+                languages = languages.rename(columns={"id": "languageId"})
+                language_rows = languages[["languageId", "name"]].to_dict(orient="records")
+            else:
+                language_rows = []
+            return self._send_json(200, {"countries": country_rows, "languages": language_rows})
 
         if path == "/api/bubble-data":
             try:
                 raw_df = _load_blob_df(query.get("rawDfUrl", [""])[0])
                 n = max(1, int(query.get("n", ["500"])[0]))
-                cat_src_col = query.get("catSrcCol", [None])[0]
-                clicks_col = _find_clicks_col(raw_df)
-                title_col = next((c for c in raw_df.columns if norm(c) == norm("title")), raw_df.columns[0] if len(raw_df.columns) else None)
-                nums = pd.to_numeric(raw_df[clicks_col].astype(str).str.extract(r"([\d.]+)")[0], errors="coerce").fillna(0) if clicks_col else pd.Series(0.0, index=raw_df.index)
-                bubble_df = raw_df.copy()
+                group_col = query.get("groupCol", [None])[0]
+
+                # Build processed df so extracted category columns are available
+                state_json = query.get("state", [None])[0]
+                state = _parse_state(state_json)
+                processed = _get_processed_df(raw_df, state) if state else raw_df.copy()
+
+                clicks_col = _find_clicks_col(processed)
+                title_col = next(
+                    (c for c in processed.columns if norm(c) == norm("title")),
+                    processed.columns[0] if len(processed.columns) else None,
+                )
+                nums = (
+                    pd.to_numeric(processed[clicks_col].astype(str).str.extract(r"([\d.]+)")[0], errors="coerce").fillna(0)
+                    if clicks_col else pd.Series(0.0, index=processed.index)
+                )
+                bubble_df = processed.copy()
                 bubble_df["_clicks"] = nums
                 bubble_df = bubble_df.sort_values("_clicks", ascending=False).head(n).reset_index(drop=True)
+
                 items = [
                     {
                         "title": str(row.get(title_col, "")) if title_col else "",
                         "clicks": float(row.get("_clicks", 0) or 0),
-                        "category": str(row.get(cat_src_col, "")) if cat_src_col and cat_src_col in bubble_df.columns else "",
+                        "category": str(row.get(group_col, "")).strip() if group_col and group_col in bubble_df.columns else "",
                     }
                     for _, row in bubble_df.iterrows()
                 ]
-                return self._send_json(200, {"items": items, "total": len(raw_df)})
+
+                # Available grouping columns: categorical columns with 2–50 unique values
+                group_candidates = [
+                    c for c in processed.columns
+                    if 2 <= int(processed[c].astype(str).str.strip().replace("", pd.NA).dropna().nunique()) <= 50
+                    and c not in {"_clicks", title_col}
+                ]
+
+                return self._send_json(200, {
+                    "items": items,
+                    "total": len(raw_df),
+                    "groupCandidates": group_candidates,
+                })
             except Exception as e:
                 return self._send_json(500, {"error": str(e)})
 
@@ -442,6 +489,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._handle_keywords()
             if path == "/api/keywords-finalise":
                 return self._handle_keywords_finalise()
+            if path == "/api/gads-fetch":
+                return self._handle_gads_fetch()
             if path == "/api/gads-upload":
                 return self._handle_gads_upload()
             if path == "/api/gads-results":
@@ -519,9 +568,15 @@ class Handler(BaseHTTPRequestHandler):
         raw_df = _load_blob_df(body["rawDfUrl"])
         kept = apply_column_selection(raw_df, body.get("keepMap", {}))
         filters = body.get("filters", {})
+        numeric_filters = body.get("numericFilters", {})
+        # Exclude numeric columns from checkbox-style options
+        num_opts = numeric_filter_options(kept)
+        num_cols = set(num_opts.keys())
         filtered = apply_filters(kept, filters)
+        filtered = apply_numeric_filters(filtered, numeric_filters)
         self._send_json(200, {
-            "options": filter_options(kept),
+            "options": {k: v for k, v in filter_options(kept).items() if k not in num_cols},
+            "numericOptions": num_opts,
             "filteredCount": len(filtered),
             "totalCount": len(kept),
             "preview": _records(_clicks_sorted_preview(raw_df, filtered)),
@@ -543,7 +598,7 @@ class Handler(BaseHTTPRequestHandler):
             "groupCol": group_col,
             "rollup": rollup.fillna("").astype(object).to_dict(orient="records"),
             "stats": [
-                {"column": c, "groupCount": stats[c]["groupCount"], "skuCount": stats[c]["skuCount"]}
+                {"column": c, "groupCount": stats[c]["group_count"], "skuCount": stats[c]["sku_count"]}
                 for c in candidates
             ],
         })
@@ -601,7 +656,7 @@ class Handler(BaseHTTPRequestHandler):
                 "pctMapped": pct_mapped,
             },
             "unmapped": [
-                {"productColour": row["Unmapped Colour"], "suggestion": row.get("Suggestion", "")}
+                {"productColour": row["Unmapped Colour"], "suggestion": row.get("Suggestion", ""), "productCount": int(row["Product Count"])}
                 for _, row in unmapped.iterrows()
             ],
             "allowedGeneric": allowed_generic,
@@ -621,9 +676,22 @@ class Handler(BaseHTTPRequestHandler):
             bool(body.get("wantPenultimate")),
             bool(body.get("wantFinal")),
         )
-        preview_cols = [cat_src_col] + [c for c in ["Main Category", "Penultimate Category", "Final Category"] if c in preview_df.columns]
+        extracted_cols = [c for c in ["Main Category", "Penultimate Category", "Final Category"] if c in preview_df.columns]
+        preview_cols = [cat_src_col] + extracted_cols
+
+        # Always show distinct category combinations with product counts
+        dedup = (
+            preview_df[preview_cols]
+            .assign(_count=1)
+            .groupby(preview_cols, as_index=False)
+            .agg(_count=("_count", "sum"))
+            .rename(columns={"_count": "Product Count"})
+            .sort_values("Product Count", ascending=False)
+        )
+        preview_rows = dedup.head(PREVIEW_ROWS).fillna("").astype(object).to_dict(orient="records")
+
         self._send_json(200, {
-            "preview": _records(preview_df[preview_cols]),
+            "preview": preview_rows,
             "allCols": list(filtered.columns),
             "catSrcCol": cat_src_col,
         })
@@ -680,6 +748,57 @@ class Handler(BaseHTTPRequestHandler):
             "combinedDfBlobUrl": combined_url,
             "preview": _records(combined),
             "totalKeywords": len(combined),
+        })
+
+    def _handle_gads_fetch(self):
+        body = self._json_body()
+        combined_df_url = body.get("combinedDfBlobUrl")
+        geo_ids = body.get("geoIds", ["2826"])  # default UK
+        language_id = body.get("languageId", "1000")  # default English
+
+        if not combined_df_url:
+            return self._send_json(400, {"error": "No combined keyword list found. Build your keyword lists first."})
+
+        combined_df = _load_blob_df(combined_df_url)
+        if "keyword_norm" not in combined_df.columns and "keyword" not in combined_df.columns:
+            return self._send_json(400, {"error": "Combined keyword list has no keyword column."})
+
+        kw_col = "keyword_norm" if "keyword_norm" in combined_df.columns else "keyword"
+        keywords = combined_df[kw_col].dropna().astype(str).str.strip().unique().tolist()
+        keywords = [k for k in keywords if k]
+
+        if not keywords:
+            return self._send_json(400, {"error": "No keywords to fetch volumes for."})
+
+        config = {
+            "GOOGLE_ADS_DEVELOPER_TOKEN": os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
+            "GOOGLE_ADS_CLIENT_ID": os.environ.get("GOOGLE_ADS_CLIENT_ID"),
+            "GOOGLE_ADS_CLIENT_SECRET": os.environ.get("GOOGLE_ADS_CLIENT_SECRET"),
+            "GOOGLE_ADS_REFRESH_TOKEN": os.environ.get("GOOGLE_ADS_REFRESH_TOKEN"),
+            "GOOGLE_ADS_LOGIN_CUSTOMER_ID": os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID"),
+        }
+
+        try:
+            client, customer_id = get_gads_client_and_customer_id(config)
+        except Exception as e:
+            return self._send_json(500, {"error": f"Google Ads credentials error: {e}"})
+
+        try:
+            gads_df, _ = fetch_historical_metrics_gads(
+                client,
+                customer_id,
+                keywords,
+                geo_ids,
+                language_id,
+            )
+        except Exception as e:
+            return self._send_json(500, {"error": f"Google Ads API error: {e}"})
+
+        gads_url = _save_blob_df(gads_df, "gads_metrics")
+        self._send_json(200, {
+            "gadsDfBlobUrl": gads_url,
+            "preview": _records(gads_df),
+            "rowCount": len(gads_df),
         })
 
     def _handle_gads_upload(self):

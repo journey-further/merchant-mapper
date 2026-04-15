@@ -6,7 +6,11 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import SectionShell from '../shared/SectionShell';
 import DataTable from '../shared/DataTable';
 
-export default function KeywordCombined() {
+interface Props {
+  onNext?: () => void;
+}
+
+export default function KeywordCombined({ onNext }: Props) {
   const store = useWorkflowStore();
   const {
     sessionId,
@@ -88,6 +92,13 @@ export default function KeywordCombined() {
               {result.totalKeywords.toLocaleString()} keyword rows generated.
             </p>
             <DataTable rows={result.preview} maxHeight="320px" />
+            {onNext && (
+              <div className="pt-2">
+                <Button size="sm" onClick={onNext}>
+                  Next: Fetch Google Ads Volumes →
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>

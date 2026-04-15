@@ -86,9 +86,15 @@ def make_keywords(df: pd.DataFrame, cols: list, explode_ampersand: bool = False)
     tmp["_quantity"] = df.loc[row_ix, quantity_col].map(to_number).fillna(0.0).to_numpy() if quantity_col else 0.0
     tmp["_clicks_28d"] = df.loc[row_ix, clicks_col].map(to_number).fillna(0.0).to_numpy() if clicks_col else 0.0
 
+    # After split_price_columns, currency lives in a companion column;
+    # fall back to extracting it from the raw price string if not split yet.
+    price_ccy_col = n2o.get(norm("price_currency"))
     if price_col:
         tmp["_price_amount"] = df.loc[row_ix, price_col].map(to_number).to_numpy()
-        tmp["_currency"] = df.loc[row_ix, price_col].map(to_ccy).to_numpy()
+        if price_ccy_col:
+            tmp["_currency"] = df.loc[row_ix, price_ccy_col].fillna("").astype(str).to_numpy()
+        else:
+            tmp["_currency"] = df.loc[row_ix, price_col].map(to_ccy).to_numpy()
         tmp["_sales_value"] = tmp["_quantity"] * tmp["_price_amount"].fillna(0.0)
     else:
         tmp["_currency"] = ""

@@ -5,9 +5,30 @@ import { Badge } from '@journey-further/salient-ui/ui/badge';
 import { Skeleton } from '@journey-further/salient-ui/ui/skeleton';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { getBubbleData } from '../../lib/api';
+import { buildWorkflowState, sortByPriority } from '../../lib/workflow';
 import PackControls from './PackControls';
 
-const PALETTE = ['#4C6A92', '#6F8F72', '#B97A57', '#8C6C99', '#C4A46B', '#5B7C99', '#9E6E6E'];
+/**
+ * Returns '#000000' or '#ffffff' for maximum contrast against the given
+ * hex background, using the WCAG relative luminance formula.
+ */
+function contrastColour(hex: string): '#000000' | '#ffffff' {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.slice(0, 2), 16) / 255;
+  const g = parseInt(c.slice(2, 4), 16) / 255;
+  const b = parseInt(c.slice(4, 6), 16) / 255;
+  // Linearise sRGB channels
+  const lin = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return L > 0.179 ? '#000000' : '#ffffff';
+}
+
+// 12-colour qualitatively-distinct palette
+const PALETTE = [
+  '#4878CF', '#6ACC65', '#D65F5F', '#B47CC7', '#C4AD66',
+  '#77BEDB', '#E08E4A', '#56A68F', '#E05C8A', '#A5C94F',
+  '#8C7B75', '#547AA5',
+];
 
 interface DataNode {
   title?: string;
@@ -25,44 +46,59 @@ interface TooltipState {
 }
 
 export default function PackChart() {
-  const { sessionId, rawDfBlobUrl, catSrcCol } = useWorkflowStore();
+  const store = useWorkflowStore();
+  const { sessionId, rawDfBlobUrl } = store;
+  const state = buildWorkflowState(store);
+
   const [n, setN] = useState(500);
-  const [useCategory, setUseCategory] = useState(false);
+  const [groupCol, setGroupCol] = useState<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
-  // Track container width and recompute pack on resize
   useEffect(() => {
     if (!containerRef.current) return;
     const ro = new ResizeObserver((entries) => {
       const { width } = entries[0].contentRect;
-      if (width > 0) {
-        setSize({ width, height: Math.max(500, Math.round(width * 0.75)) });
-      }
+      if (width > 0) setSize({ width, height: Math.max(500, Math.round(width * 0.75)) });
     });
     ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, []);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['bubble-data', sessionId, n, useCategory ? catSrcCol : null],
+    queryKey: ['bubble-data', sessionId, n, groupCol, state],
     queryFn: () =>
       getBubbleData({
         session: sessionId!,
         rawDfUrl: rawDfBlobUrl!,
         n,
-        catSrcCol: useCategory && catSrcCol ? catSrcCol : undefined,
+        groupCol: groupCol || undefined,
+        state,
       }),
     enabled: !!sessionId && !!rawDfBlobUrl,
     staleTime: 60_000,
   });
 
+  // Once we have candidates, auto-select a sensible default if none chosen yet
+  useEffect(() => {
+    if (!groupCol && data?.groupCandidates?.length) {
+      const sorted = sortByPriority(data.groupCandidates);
+      setGroupCol(sorted[0] ?? '');
+    }
+  }, [data?.groupCandidates, groupCol]);
+
+  const sortedCandidates = useMemo(
+    () => sortByPriority(data?.groupCandidates ?? []),
+    [data?.groupCandidates]
+  );
+
+  const hierarchical = !!groupCol;
+
   const { productCircles, categoryCircles } = useMemo(() => {
     if (!data?.items.length) return { productCircles: [], categoryCircles: [] };
     const { width, height } = size;
     const items = data.items;
-    const hierarchical = useCategory && !!catSrcCol;
 
     let root: d3h.HierarchyCircularNode<DataNode>;
 
@@ -80,20 +116,14 @@ export default function PackChart() {
           children: kids as DataNode[],
         })),
       };
-      root = d3h
-        .pack<DataNode>()
-        .size([width, height])
-        .padding(6)(
-          d3h.hierarchy(treeData).sum((d) => Math.max((d as { clicks?: number }).clicks ?? 0, 1))
-        );
+      root = d3h.pack<DataNode>().size([width, height]).padding(6)(
+        d3h.hierarchy(treeData).sum((d) => Math.max((d as { clicks?: number }).clicks ?? 0, 1))
+      );
     } else {
       const treeData: DataNode = { children: items as DataNode[] };
-      root = d3h
-        .pack<DataNode>()
-        .size([width, height])
-        .padding(2)(
-          d3h.hierarchy(treeData).sum((d) => Math.max((d as { clicks?: number }).clicks ?? 0, 1))
-        );
+      root = d3h.pack<DataNode>().size([width, height]).padding(2)(
+        d3h.hierarchy(treeData).sum((d) => Math.max((d as { clicks?: number }).clicks ?? 0, 1))
+      );
     }
 
     const all = root.descendants();
@@ -101,18 +131,14 @@ export default function PackChart() {
       productCircles: all.filter((node) => node.depth === (hierarchical ? 2 : 1)),
       categoryCircles: hierarchical ? all.filter((node) => node.depth === 1) : [],
     };
-  }, [data, size, useCategory, catSrcCol]);
+  }, [data, size, hierarchical]);
 
-  // Build category → colour map from category circles
   const catColorMap = useMemo(() => {
     const map = new Map<string, string>();
     let i = 0;
     for (const c of categoryCircles) {
       const name = (c.data as DataNode).name ?? '';
-      if (!map.has(name)) {
-        map.set(name, PALETTE[i % PALETTE.length]);
-        i++;
-      }
+      if (!map.has(name)) { map.set(name, PALETTE[i % PALETTE.length]); i++; }
     }
     return map;
   }, [categoryCircles]);
@@ -132,10 +158,10 @@ export default function PackChart() {
         <PackControls
           n={n}
           total={data?.total ?? 0}
-          useCategory={useCategory}
-          hasCatSrcCol={!!catSrcCol}
+          groupCol={groupCol}
+          candidates={sortedCandidates}
           onNChange={setN}
-          onUseCategoryChange={setUseCategory}
+          onGroupColChange={setGroupCol}
         />
         {data && (
           <Badge variant="secondary">
@@ -161,86 +187,77 @@ export default function PackChart() {
             style={{ display: 'block' }}
             onMouseLeave={() => setTooltip(null)}
           >
-            {/* Category circles (semi-transparent background) */}
+            {/* Category circle backgrounds — drawn first so product circles paint over them */}
             {categoryCircles.map((c, i) => {
               const name = (c.data as DataNode).name ?? '';
               const color = catColorMap.get(name) ?? PALETTE[0];
               return (
-                <g key={`cat-${i}`}>
-                  <circle
-                    cx={c.x}
-                    cy={c.y}
-                    r={c.r}
-                    fill={color}
-                    fillOpacity={0.12}
-                    stroke={color}
-                    strokeWidth={1.5}
-                  />
-                  {c.r > 30 && (
-                    <text
-                      x={c.x}
-                      y={c.y - c.r + 14}
-                      textAnchor="middle"
-                      fontSize={11}
-                      fill={color}
-                      fontWeight={600}
-                    >
-                      {name}
-                    </text>
-                  )}
-                </g>
+                <circle key={`cat-${i}`} cx={c.x} cy={c.y} r={c.r} fill={color} fillOpacity={0.13} stroke={color} strokeWidth={2} />
               );
             })}
 
             {/* Product circles */}
             {productCircles.map((c, i) => {
               const item = c.data as DataNode;
-              const catName =
-                useCategory && catSrcCol ? (item.category || 'Uncategorised') : null;
-              const color = catName
-                ? (catColorMap.get(catName) ?? PALETTE[0])
-                : PALETTE[i % PALETTE.length];
+              const catName = hierarchical ? (item.category || 'Uncategorised') : null;
+              const color = catName ? (catColorMap.get(catName) ?? PALETTE[0]) : PALETTE[i % PALETTE.length];
               return (
                 <circle
                   key={`prod-${i}`}
-                  cx={c.x}
-                  cy={c.y}
-                  r={Math.max(c.r, 1)}
-                  fill={color}
-                  fillOpacity={0.85}
-                  stroke="white"
-                  strokeWidth={0.5}
+                  cx={c.x} cy={c.y} r={Math.max(c.r, 1)}
+                  fill={color} fillOpacity={0.85} stroke="white" strokeWidth={0.5}
                   style={{ cursor: 'pointer' }}
-                  onMouseEnter={(e) =>
-                    setTooltip({
-                      x: e.clientX,
-                      y: e.clientY,
-                      title: item.title ?? '',
-                      clicks: item.clicks ?? 0,
-                    })
-                  }
-                  onMouseMove={(e) =>
-                    setTooltip((prev) =>
-                      prev ? { ...prev, x: e.clientX, y: e.clientY } : null
-                    )
-                  }
+                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, title: item.title ?? '', clicks: item.clicks ?? 0 })}
+                  onMouseMove={(e) => setTooltip((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
                   onMouseLeave={() => setTooltip(null)}
                 />
+              );
+            })}
+
+            {/* Category labels — rendered last so they always appear above product circles */}
+            {categoryCircles.map((c, i) => {
+              if (c.r <= 24) return null;
+              const name = (c.data as DataNode).name ?? '';
+              const color = catColorMap.get(name) ?? PALETTE[0];
+              const fontSize = Math.max(10, Math.min(15, c.r * 0.14));
+              const label = name.length > 22 ? name.slice(0, 20) + '…' : name;
+              const pillW = Math.min(label.length * fontSize * 0.62 + 12, c.r * 1.85);
+              const pillH = fontSize + 8;
+              return (
+                <g key={`lbl-${i}`} style={{ pointerEvents: 'none' }}>
+                  <rect
+                    x={c.x - pillW / 2}
+                    y={c.y - pillH / 2}
+                    width={pillW}
+                    height={pillH}
+                    rx={pillH / 2}
+                    fill={color}
+                    fillOpacity={0.92}
+                  />
+                  <text
+                    x={c.x}
+                    y={c.y + fontSize * 0.35}
+                    textAnchor="middle"
+                    fontSize={fontSize}
+                    fill={contrastColour(color)}
+                    fontWeight={700}
+                    fontFamily="sans-serif"
+                  >
+                    {label}
+                  </text>
+                </g>
               );
             })}
           </svg>
         )}
 
-        {/* Floating tooltip */}
         {tooltip && (
           <div
             className="pointer-events-none fixed z-50 max-w-[220px] rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
             style={{ left: tooltip.x + 14, top: tooltip.y - 10 }}
           >
             <div className="font-medium leading-tight">{tooltip.title}</div>
-            <div className="mt-0.5 text-muted-foreground">
-              {tooltip.clicks.toLocaleString()} clicks
-            </div>
+            <div className="mt-0.5 text-muted-foreground">{tooltip.clicks.toLocaleString()} clicks</div>
           </div>
         )}
       </div>

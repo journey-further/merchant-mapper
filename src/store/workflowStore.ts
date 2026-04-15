@@ -18,6 +18,7 @@ interface WorkflowStore {
   // Workflow config (previously Flask session keys)
   keepMap: Record<string, boolean>;
   filters: Record<string, string[]>;
+  numericFilters: Record<string, { gte?: number; lte?: number }>;
   groupCol: string | null;
   colourCol: string | null;
   catSrcCol: string | null;
@@ -46,6 +47,7 @@ interface WorkflowStore {
   }) => void;
   setKeepMap: (map: Record<string, boolean>) => void;
   setFilters: (filters: Record<string, string[]>) => void;
+  setNumericFilters: (numericFilters: Record<string, { gte?: number; lte?: number }>) => void;
   setGroupCol: (col: string) => void;
   setColourCol: (col: string) => void;
   setCatSrcCol: (col: string) => void;
@@ -70,6 +72,7 @@ const DEFAULT_STATE = {
   colourMapBlobUrl: null,
   keepMap: {},
   filters: {},
+  numericFilters: {},
   groupCol: null,
   colourCol: null,
   catSrcCol: null,
@@ -104,6 +107,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
           gadsDfBlobUrl: null,
           colourMapBlobUrl: null,
           filters: {},
+          numericFilters: {},
           groupCol: null,
           colourCol: null,
           wantMain: false,
@@ -115,6 +119,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
 
       setKeepMap: (keepMap) => set({ keepMap }),
       setFilters: (filters) => set({ filters }),
+      setNumericFilters: (numericFilters) => set({ numericFilters }),
       setGroupCol: (groupCol) => set({ groupCol }),
       setColourCol: (colourCol) => set({ colourCol }),
       setCatSrcCol: (catSrcCol) => set({ catSrcCol }),
@@ -142,6 +147,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
         colourMapBlobUrl: state.colourMapBlobUrl,
         keepMap: state.keepMap,
         filters: state.filters,
+        numericFilters: state.numericFilters,
         groupCol: state.groupCol,
         colourCol: state.colourCol,
         catSrcCol: state.catSrcCol,

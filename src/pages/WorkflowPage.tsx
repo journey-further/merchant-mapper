@@ -5,7 +5,7 @@ import UploadDropzone from '../components/feed/UploadDropzone';
 import { useWorkflowStore } from '../store/workflowStore';
 
 // Feed tab sections (lazy-imported to keep initial bundle small)
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Skeleton } from '@journey-further/salient-ui/ui/skeleton';
 
 const ColumnPicker = lazy(() => import('../components/feed/ColumnPicker'));
@@ -20,6 +20,7 @@ const PackChart = lazy(() => import('../components/visualise/PackChart'));
 
 const KeywordBuilder = lazy(() => import('../components/keywords/KeywordBuilder'));
 const KeywordCombined = lazy(() => import('../components/keywords/KeywordCombined'));
+const NormalisedFeedMini = lazy(() => import('../components/feed/NormalisedFeedMini'));
 
 const GadsConfig = lazy(() => import('../components/gads/GadsConfig'));
 const GadsResults = lazy(() => import('../components/gads/GadsResults'));
@@ -34,9 +35,12 @@ function SectionFallback() {
   );
 }
 
+type TabValue = 'feed' | 'keywords' | 'gads' | 'visualise';
+
 export default function WorkflowPage() {
   const { rawDfBlobUrl, productCount, fileName, resetSession } = useWorkflowStore();
   const hasFile = !!rawDfBlobUrl;
+  const [activeTab, setActiveTab] = useState<TabValue>('feed');
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,12 +77,12 @@ export default function WorkflowPage() {
               </button>
             </div>
 
-            <Tabs defaultValue="feed">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
               <TabsList className="mb-6">
                 <TabsTrigger value="feed">Feed</TabsTrigger>
-                <TabsTrigger value="visualise">Visualise</TabsTrigger>
                 <TabsTrigger value="keywords">Keywords</TabsTrigger>
                 <TabsTrigger value="gads">Google Ads</TabsTrigger>
+                <TabsTrigger value="visualise">Visualise</TabsTrigger>
               </TabsList>
 
               {/* ── Feed tab ───────────────────────────────────────────── */}
@@ -102,24 +106,20 @@ export default function WorkflowPage() {
                   <CategoryExtraction />
                 </Suspense>
                 <Suspense fallback={<SectionFallback />}>
-                  <NormalisedFeedPreview />
-                </Suspense>
-              </TabsContent>
-
-              {/* ── Visualise tab ──────────────────────────────────────── */}
-              <TabsContent value="visualise">
-                <Suspense fallback={<SectionFallback />}>
-                  <PackChart />
+                  <NormalisedFeedPreview onNext={() => setActiveTab('keywords')} />
                 </Suspense>
               </TabsContent>
 
               {/* ── Keywords tab ───────────────────────────────────────── */}
               <TabsContent value="keywords">
+                <Suspense fallback={null}>
+                  <NormalisedFeedMini />
+                </Suspense>
                 <Suspense fallback={<SectionFallback />}>
                   <KeywordBuilder />
                 </Suspense>
                 <Suspense fallback={<SectionFallback />}>
-                  <KeywordCombined />
+                  <KeywordCombined onNext={() => setActiveTab('gads')} />
                 </Suspense>
               </TabsContent>
 
@@ -133,6 +133,13 @@ export default function WorkflowPage() {
                 </Suspense>
                 <Suspense fallback={<SectionFallback />}>
                   <GadsCharts />
+                </Suspense>
+              </TabsContent>
+
+              {/* ── Visualise tab ──────────────────────────────────────── */}
+              <TabsContent value="visualise">
+                <Suspense fallback={<SectionFallback />}>
+                  <PackChart />
                 </Suspense>
               </TabsContent>
             </Tabs>

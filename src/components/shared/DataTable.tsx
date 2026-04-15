@@ -1,15 +1,13 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@journey-further/salient-ui/ui/table';
+const MAX_CELL_LEN = 60;
+
+function truncate(val: string): { display: string; truncated: boolean } {
+  if (val.length <= MAX_CELL_LEN) return { display: val, truncated: false };
+  return { display: val.slice(0, MAX_CELL_LEN) + '…', truncated: true };
+}
 
 interface DataTableProps {
   rows: Record<string, string | number>[];
-  columns?: string[]; // explicit column order; defaults to Object.keys(rows[0])
+  columns?: string[];
   maxHeight?: string;
 }
 
@@ -19,29 +17,61 @@ export default function DataTable({ rows, columns, maxHeight = '360px' }: DataTa
   const cols = columns ?? Object.keys(rows[0]);
 
   return (
-    <div className="overflow-auto rounded-md border" style={{ maxHeight }}>
-      <Table>
-        <TableHeader>
-          <TableRow>
+    <div
+      className="rounded-md border"
+      style={{ maxHeight, overflowX: 'auto', overflowY: 'auto' }}
+    >
+      <table style={{ borderCollapse: 'collapse', whiteSpace: 'nowrap', width: 'max-content', minWidth: '100%' }}>
+        <thead>
+          <tr style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--background, #fff)' }}>
             {cols.map((c) => (
-              <TableHead key={c} className="whitespace-nowrap text-xs">
+              <th
+                key={c}
+                style={{
+                  padding: '6px 12px',
+                  textAlign: 'left',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderBottom: '1px solid var(--border, #e5e7eb)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {c}
-              </TableHead>
+              </th>
             ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+          </tr>
+        </thead>
+        <tbody>
           {rows.map((row, i) => (
-            <TableRow key={i}>
-              {cols.map((c) => (
-                <TableCell key={c} className="text-xs">
-                  {String(row[c] ?? '')}
-                </TableCell>
-              ))}
-            </TableRow>
+            <tr
+              key={i}
+              style={{ borderBottom: '1px solid var(--border, #e5e7eb)' }}
+            >
+              {cols.map((c) => {
+                const raw = String(row[c] ?? '');
+                const { display, truncated } = truncate(raw);
+                return (
+                  <td
+                    key={c}
+                    title={truncated ? raw : undefined}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.75rem',
+                      verticalAlign: 'top',
+                      maxWidth: '240px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {display}
+                  </td>
+                );
+              })}
+            </tr>
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }
