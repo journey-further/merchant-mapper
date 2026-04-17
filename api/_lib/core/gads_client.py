@@ -1,78 +1,103 @@
-"""Google Ads API client and keyword historical metrics fetcher."""
-import re
-import math
-import time
-import random
+"""Google Ads REST API helpers — no gRPC / google-ads SDK required."""
+from __future__ import annotations
+
 import itertools
+import math
+import random
+import re
+import time
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import pandas as pd
+import requests
 import yaml
 
+QPS_SLEEP = 1.2
+_GADS_REST_BASE = "https://googleads.googleapis.com/v20"
+MONTHS = [
+    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+    "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
+]
 
-QPS_SLEEP = 1.2  # seconds between requests
+
+class _RateLimitError(Exception):
+    pass
 
 
 def _norm_id(x) -> str:
     return str(x).replace("-", "").strip() if x else ""
 
 
-def get_gads_client_and_customer_id(config: dict):
-    """
-    Load Google Ads client from config dict (env vars / Replit Secrets).
-    Returns (client, customer_id) or raises RuntimeError.
-    """
-    from google.ads.googleads.client import GoogleAdsClient
+def _get_access_token(client_id: str, client_secret: str, refresh_token: str) -> str:
+    """Exchange a refresh token for a short-lived OAuth2 access token."""
+    resp = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        },
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()["access_token"]
 
-    cfg = {
+
+def get_gads_credentials(config: dict) -> dict:
+    """
+    Extract and validate Google Ads credentials from a config dict (env vars).
+    Falls back to a local google-ads.yaml if env vars are not set.
+    Returns a credentials dict; raises RuntimeError if credentials are missing.
+    """
+    creds: dict = {
         "developer_token": config.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
         "client_id": config.get("GOOGLE_ADS_CLIENT_ID"),
         "client_secret": config.get("GOOGLE_ADS_CLIENT_SECRET"),
         "refresh_token": config.get("GOOGLE_ADS_REFRESH_TOKEN"),
         "login_customer_id": config.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID"),
         "client_customer_id": config.get("GOOGLE_ADS_CLIENT_CUSTOMER_ID"),
-        "use_proto_plus": True,
     }
 
-    # Fall back to local yaml if env vars not set
-    if not cfg["developer_token"]:
+    if not creds["developer_token"]:
         yaml_path = Path(__file__).parent.parent / "google-ads.yaml"
         if yaml_path.exists():
-            with open(yaml_path, "r", encoding="utf-8") as f:
-                file_cfg = yaml.safe_load(f) or {}
-            cfg.update({
-                "developer_token": cfg["developer_token"] or file_cfg.get("developer_token"),
-                "client_id": cfg["client_id"] or file_cfg.get("client_id"),
-                "client_secret": cfg["client_secret"] or file_cfg.get("client_secret"),
-                "refresh_token": cfg["refresh_token"] or file_cfg.get("refresh_token"),
-                "login_customer_id": cfg["login_customer_id"] or file_cfg.get("login_customer_id"),
-                "client_customer_id": cfg["client_customer_id"] or file_cfg.get("client_customer_id"),
-            })
+            with open(yaml_path, "r", encoding="utf-8") as fh:
+                file_cfg = yaml.safe_load(fh) or {}
+            for key, yaml_key in [
+                ("developer_token", "developer_token"),
+                ("client_id", "client_id"),
+                ("client_secret", "client_secret"),
+                ("refresh_token", "refresh_token"),
+                ("login_customer_id", "login_customer_id"),
+                ("client_customer_id", "client_customer_id"),
+            ]:
+                creds[key] = creds[key] or file_cfg.get(yaml_key)
         else:
-            raise RuntimeError("No Google Ads credentials found (env vars or google-ads.yaml).")
+            raise RuntimeError(
+                "No Google Ads credentials found (set env vars or provide google-ads.yaml)."
+            )
 
-    yaml_text = yaml.dump({k: v for k, v in cfg.items() if v is not None})
-    client = GoogleAdsClient.load_from_string(yaml_text, version="v20")
-    effective_id = _norm_id(cfg.get("client_customer_id")) or _norm_id(cfg.get("login_customer_id"))
-    return client, effective_id
+    creds["customer_id"] = _norm_id(
+        creds.get("client_customer_id") or creds.get("login_customer_id")
+    )
+    return creds
 
 
-def load_gads_constants():
-    """Load country/language dropdown data from gads_exports CSVs."""
-    base = Path(__file__).parent.parent / "gads_exports"
-    countries_path = base / "geo_target_countries.csv"
-    languages_path = base / "language_constants.csv"
-    if not countries_path.exists() or not languages_path.exists():
-        return None, None
-    try:
-        countries = pd.read_csv(countries_path, dtype=str).fillna("")
-        languages = pd.read_csv(languages_path, dtype=str).fillna("")
-    except Exception:
-        return None, None
-    if "status" in countries.columns:
-        countries = countries[countries["status"].str.upper() == "ENABLED"]
-    return countries, languages
+def _build_headers(creds: dict) -> dict:
+    """Return HTTP headers for a Google Ads REST request (refreshes token each call)."""
+    access_token = _get_access_token(
+        creds["client_id"], creds["client_secret"], creds["refresh_token"]
+    )
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "developer-token": creds["developer_token"],
+        "Content-Type": "application/json",
+    }
+    if creds.get("login_customer_id"):
+        headers["login-customer-id"] = _norm_id(creds["login_customer_id"])
+    return headers
 
 
 def _batched(iterable, n: int):
@@ -93,8 +118,25 @@ def _sleep_with_retry_delay(retry_seconds: Optional[float], attempt: int) -> Non
         time.sleep(base + random.random())
 
 
+def load_gads_constants():
+    """Load country/language dropdown data from gads_exports CSVs."""
+    base = Path(__file__).parent.parent / "gads_exports"
+    countries_path = base / "geo_target_countries.csv"
+    languages_path = base / "language_constants.csv"
+    if not countries_path.exists() or not languages_path.exists():
+        return None, None
+    try:
+        countries = pd.read_csv(countries_path, dtype=str).fillna("")
+        languages = pd.read_csv(languages_path, dtype=str).fillna("")
+    except Exception:
+        return None, None
+    if "status" in countries.columns:
+        countries = countries[countries["status"].str.upper() == "ENABLED"]
+    return countries, languages
+
+
 def fetch_historical_metrics_gads(
-    client,
+    creds: dict,
     customer_id: str,
     keywords: list,
     geo_ids: list,
@@ -103,104 +145,90 @@ def fetch_historical_metrics_gads(
     progress_callback: Optional[Callable] = None,
 ) -> tuple:
     """
-    Fetch keyword historical metrics from Google Ads API.
-
-    progress_callback(pct: float, batch: int, total_batches: int) is called
-    after each batch completes (pct in [0,1]).
-
-    Returns (df, raw_results).
+    Fetch keyword historical metrics via Google Ads REST API.
+    Returns (df, raw_results) — same shape as the old gRPC implementation.
     """
     if not keywords:
         return pd.DataFrame(), []
 
-    try:
-        from google.protobuf.json_format import MessageToDict
-    except Exception:
-        MessageToDict = None
-
-    from google.api_core.retry import Retry, if_exception_type
-    from google.api_core import exceptions as gcore_exc
-    import grpc
-
-    googleads_service = client.get_service("GoogleAdsService")
-    idea_service = client.get_service("KeywordPlanIdeaService")
-    network_enum = client.enums.KeywordPlanNetworkEnum
-
-    grpc_retry = Retry(
-        predicate=if_exception_type(gcore_exc.ResourceExhausted, gcore_exc.ServiceUnavailable),
-        initial=4.0, maximum=60.0, multiplier=1.6,
+    url = (
+        f"{_GADS_REST_BASE}/customers/{customer_id}"
+        "/keywordPlanIdeas:generateKeywordHistoricalMetrics"
     )
-
-    out_rows, raw_results = [], []
-    total = len(keywords)
-    batches = math.ceil(total / max(1, batch_size))
+    headers = _build_headers(creds)
+    out_rows: list = []
+    raw_results: list = []
+    batches = math.ceil(len(keywords) / max(1, batch_size))
 
     for idx, chunk in enumerate(_batched(keywords, batch_size)):
-        req = client.get_type("GenerateKeywordHistoricalMetricsRequest")
-        req.customer_id = customer_id
-        req.keywords.extend(chunk)
-        req.keyword_plan_network = network_enum.GOOGLE_SEARCH
-        req.language = googleads_service.language_constant_path(language_id)
-        try:
-            req.historical_metrics_options.year_month_range.include_zero_monthly_searches = True
-        except AttributeError:
-            pass
-        for gid in geo_ids:
-            req.geo_target_constants.append(googleads_service.geo_target_constant_path(gid))
+        body = {
+            "keywords": chunk,
+            "keywordPlanNetwork": "GOOGLE_SEARCH",
+            "language": f"languageConstants/{language_id}",
+            "geoTargetConstants": [f"geoTargetConstants/{gid}" for gid in geo_ids],
+            "historicalMetricsOptions": {"includeAverageMonthlySearches": True},
+        }
 
         attempts = 0
+        resp_data: dict = {}
         while True:
             try:
                 time.sleep(QPS_SLEEP)
-                resp = grpc_retry(idea_service.generate_keyword_historical_metrics)(request=req)
+                resp = requests.post(url, headers=headers, json=body, timeout=60)
+                if resp.status_code == 429 or (
+                    resp.status_code >= 500 and "RATE_LIMIT" in resp.text
+                ):
+                    raise _RateLimitError(resp.text)
+                resp.raise_for_status()
+                resp_data = resp.json()
                 break
-            except gcore_exc.ResourceExhausted as e:
+            except _RateLimitError as exc:
                 attempts += 1
                 if attempts > 8:
                     raise
-                retry_seconds = None
-                m = re.search(r"Retry in (\d+)\s*second", str(e))
-                if m:
-                    retry_seconds = float(m.group(1))
-                _sleep_with_retry_delay(retry_seconds, attempts - 1)
-            except (gcore_exc.ServiceUnavailable, gcore_exc.DeadlineExceeded, grpc.RpcError):
+                m = re.search(r"Retry in (\d+)\s*second", str(exc))
+                _sleep_with_retry_delay(float(m.group(1)) if m else None, attempts - 1)
+                headers = _build_headers(creds)
+            except requests.HTTPError:
                 attempts += 1
                 if attempts > 8:
                     raise
                 _sleep_with_retry_delay(None, attempts - 1)
+                headers = _build_headers(creds)
 
-        if MessageToDict and hasattr(resp, "results"):
-            raw_results.extend([MessageToDict(r._pb) for r in resp.results])
-        else:
-            for r in resp.results:
-                raw_results.append({
-                    "text": getattr(r, "text", ""),
-                    "closeVariants": list(getattr(r, "close_variants", [])),
-                })
+        results = resp_data.get("results", [])
+        raw_results.extend(results)
 
-        MONTHS = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE",
-                  "JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"]
+        for r in results:
+            text = r.get("text", "")
+            close_variants = r.get("closeVariants", [])
+            km = r.get("keywordMetrics", {})
 
-        for r in resp.results:
-            m = r.keyword_metrics
-            canonical = r.text.lower().strip()
-            variants = [v.lower().strip() for v in (list(r.close_variants) if r.close_variants else [])]
+            canonical = text.lower().strip()
+            variants = [v.lower().strip() for v in close_variants]
             aliases = [canonical] + [v for v in variants if v]
+
+            avg_ms = km.get("avgMonthlySearches")
+            comp_idx = km.get("competitionIndex")
             base = {
                 "canonical_keyword": canonical,
                 "aliases": aliases,
                 "close_variants": ", ".join(variants) if variants else "",
-                "avg_monthly_searches": int(m.avg_monthly_searches) if m.avg_monthly_searches is not None else None,
-                "competition_index": int(m.competition_index) if m.competition_index is not None else None,
-                "competition_level": m.competition.name if hasattr(m.competition, "name") else str(m.competition),
+                "avg_monthly_searches": int(avg_ms) if avg_ms is not None else None,
+                "competition_index": int(comp_idx) if comp_idx is not None else None,
+                "competition_level": km.get("competition", ""),
             }
-            if getattr(m, "monthly_search_volumes", None):
-                for mv in m.monthly_search_volumes:
-                    month_num = MONTHS.index(mv.month.name) + 1
+
+            monthly_volumes = km.get("monthlySearchVolumes", [])
+            if monthly_volumes:
+                for mv in monthly_volumes:
+                    month_name = mv.get("month", "JANUARY")
+                    month_num = (MONTHS.index(month_name) + 1) if month_name in MONTHS else 0
+                    ms = mv.get("monthlySearches")
                     out_rows.append(base | {
-                        "year": int(mv.year),
+                        "year": int(mv.get("year", 0)),
                         "month": month_num,
-                        "monthly_searches": int(mv.monthly_searches) if mv.monthly_searches is not None else None,
+                        "monthly_searches": int(ms) if ms is not None else None,
                     })
             else:
                 out_rows.append(base | {"year": None, "month": None, "monthly_searches": None})

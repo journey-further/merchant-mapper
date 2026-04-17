@@ -3,7 +3,7 @@ import os
 from api._lib.blob_io import load_df, save_df
 from api._lib.core.gads_client import (
     fetch_historical_metrics_gads,
-    get_gads_client_and_customer_id,
+    get_gads_credentials,
 )
 from api._lib.handler_utils import BaseHandler, records
 
@@ -35,14 +35,14 @@ class handler(BaseHandler):
             }
 
             try:
-                client, customer_id = get_gads_client_and_customer_id(config)
+                creds = get_gads_credentials(config)
             except Exception as e:
                 return self._send_json(500, {"error": f"Google Ads credentials error: {e}"})
 
             geo_ids = body.get("geoIds", ["2826"])
             language_id = body.get("languageId", "1000")
 
-            gads_df, _ = fetch_historical_metrics_gads(client, customer_id, keywords, geo_ids, language_id)
+            gads_df, _ = fetch_historical_metrics_gads(creds, creds["customer_id"], keywords, geo_ids, language_id)
             gads_url = save_df(gads_df, "gads_metrics")
 
             self._send_json(200, {
