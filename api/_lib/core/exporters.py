@@ -9,19 +9,7 @@ def to_csv_bytes(df: pd.DataFrame) -> bytes:
 
 def to_xlsx_bytes(df: pd.DataFrame, sheet_name: str = "Data") -> bytes:
     buf = io.BytesIO()
-    try:
-        with pd.ExcelWriter(buf, engine="openpyxl") as w:
-            df.to_excel(w, index=False, sheet_name=sheet_name)
-    except Exception:
-        try:
-            with pd.ExcelWriter(
-                buf,
-                engine="xlsxwriter",
-                engine_kwargs={"options": {"strings_to_urls": False, "strings_to_formulas": False}},
-            ) as w:
-                df.to_excel(w, index=False, sheet_name=sheet_name)
-        except Exception:
-            with pd.ExcelWriter(buf, engine="xlsxwriter") as w:
-                df.to_excel(w, index=False, sheet_name=sheet_name)
+    with pd.ExcelWriter(buf, engine="openpyxl") as w:
+        df.to_excel(w, index=False, sheet_name=sheet_name)
     buf.seek(0)
     return buf.getvalue()
