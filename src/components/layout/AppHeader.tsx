@@ -1,4 +1,4 @@
-import { Button } from '@journey-further/salient-ui/ui/button';
+import { Button } from '../../ui/button';
 import { useWorkflowStore } from '../../store/workflowStore';
 
 const BalanceIcon = () => (

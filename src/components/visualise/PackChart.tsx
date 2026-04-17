@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as d3h from 'd3-hierarchy';
-import { Badge } from '@journey-further/salient-ui/ui/badge';
-import { Skeleton } from '@journey-further/salient-ui/ui/skeleton';
+import { Badge } from '../../ui/badge';
+import { Skeleton } from '../../ui/skeleton';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { getBubbleData } from '../../lib/api';
 import { buildWorkflowState, sortByPriority } from '../../lib/workflow';

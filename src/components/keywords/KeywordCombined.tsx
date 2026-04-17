@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@journey-further/salient-ui/ui/button';
+import { Button } from '../../ui/button';
 import { downloadUrl, finaliseKeywords } from '../../lib/api';
 import { buildWorkflowState } from '../../lib/workflow';
 import { useWorkflowStore } from '../../store/workflowStore';

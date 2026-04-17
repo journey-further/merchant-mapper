@@ -54,6 +54,7 @@ from api._lib.core.product_groups import (
     format_rollup,
     group_candidates,
 )
+from api._lib.core.shopify_fetcher import fetch_shopify_products, shopify_keep_map
 from api._lib.core.utils import norm
 
 # Load .env if present (for local Google Ads credentials)
@@ -471,6 +472,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._handle_blob_token()
             if path == "/api/parse":
                 return self._handle_parse()
+            if path == "/api/fetch-shopify":
+                return self._handle_fetch_shopify()
             if path == "/api/columns":
                 return self._handle_columns()
             if path == "/api/filters":
@@ -528,6 +531,27 @@ class Handler(BaseHTTPRequestHandler):
             "columns": _column_meta(df, keep_map),
             "productCount": count_products(df),
             "fileName": resolved_name,
+            "sheetName": None,
+            "sheets": None,
+            "rawDfBlobUrl": raw_url,
+            "fileHash": file_hash,
+            "catSrcCol": preferred_category_column(df),
+        })
+
+    def _handle_fetch_shopify(self):
+        body = self._json_body()
+        store_url = body.get("storeUrl", "").strip()
+        if not store_url:
+            return self._send_json(400, {"error": "storeUrl is required"})
+        df = fetch_shopify_products(store_url)
+        keep_map = shopify_keep_map(df)
+        raw_url = _save_blob_df(df, "shopify_raw")
+        file_hash = hashlib.md5(store_url.encode()).hexdigest()
+        display_name = store_url.replace("https://", "").replace("http://", "").rstrip("/")
+        self._send_json(200, {
+            "columns": _column_meta(df, keep_map),
+            "productCount": count_products(df),
+            "fileName": display_name,
             "sheetName": None,
             "sheets": None,
             "rawDfBlobUrl": raw_url,

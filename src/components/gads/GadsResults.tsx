@@ -3,7 +3,7 @@ import { downloadUrl, getGadsResults } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
 import SectionShell from '../shared/SectionShell';
 import DataTable from '../shared/DataTable';
-import { Button } from '@journey-further/salient-ui/ui/button';
+import { Button } from '../../ui/button';
 
 export default function GadsResults() {
   const { sessionId, combinedDfBlobUrl, gadsDfBlobUrl } = useWorkflowStore();

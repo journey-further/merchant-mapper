@@ -5,6 +5,10 @@ function truncate(val: string): { display: string; truncated: boolean } {
   return { display: val.slice(0, MAX_CELL_LEN) + '…', truncated: true };
 }
 
+function isUrl(val: string): boolean {
+  return val.startsWith('http://') || val.startsWith('https://');
+}
+
 interface DataTableProps {
   rows: Record<string, string | number>[];
   columns?: string[];
@@ -50,10 +54,11 @@ export default function DataTable({ rows, columns, maxHeight = '360px' }: DataTa
               {cols.map((c) => {
                 const raw = String(row[c] ?? '');
                 const { display, truncated } = truncate(raw);
+                const url = isUrl(raw);
                 return (
                   <td
                     key={c}
-                    title={truncated ? raw : undefined}
+                    title={truncated && !url ? raw : undefined}
                     style={{
                       padding: '6px 12px',
                       fontSize: '0.75rem',
@@ -64,7 +69,19 @@ export default function DataTable({ rows, columns, maxHeight = '360px' }: DataTa
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {display}
+                    {url ? (
+                      <a
+                        href={raw}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={raw}
+                        style={{ color: 'var(--primary, #2563eb)', textDecoration: 'underline' }}
+                      >
+                        {display}
+                      </a>
+                    ) : (
+                      display
+                    )}
                   </td>
                 );
               })}

@@ -1,8 +1,14 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "regions": ["lhr1"],
+  "functions": {
+    "api/**/*.py": {
+      "includeFiles": "api/_lib/**",
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)",        "destination": "/api/$1" },
-    { "source": "/((?!api/).*)",    "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Label } from '@journey-further/salient-ui/ui/label';
+import { Label } from '../../ui/label';
 
 interface PackControlsProps {
   n: number;

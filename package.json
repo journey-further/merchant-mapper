@@ -10,8 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@journey-further/salient-ui": "file:../salient-ui",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-slot": "^1.2.0",
+    "@radix-ui/react-tabs": "^1.1.0",
     "@tanstack/react-query": "^5.95.2",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.2",
+    "tw-animate-css": "^1.2.9",
     "chart.js": "^4.5.1",
     "d3-hierarchy": "^3.1.2",
     "d3-selection": "^3.0.0",

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@journey-further/salient-ui/ui/button';
+import { Button } from '../../ui/button';
 import { applyColumns } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
 import SectionShell from '../shared/SectionShell';

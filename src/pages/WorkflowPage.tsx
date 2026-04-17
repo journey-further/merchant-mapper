@@ -1,12 +1,14 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@journey-further/salient-ui/ui/tabs';
-import { Badge } from '@journey-further/salient-ui/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Badge } from '../ui/badge';
 import AppHeader from '../components/layout/AppHeader';
 import UploadDropzone from '../components/feed/UploadDropzone';
+import ShopifyFetcher from '../components/feed/ShopifyFetcher';
 import { useWorkflowStore } from '../store/workflowStore';
+import type { FeedSourceType } from '../store/workflowStore';
 
 // Feed tab sections (lazy-imported to keep initial bundle small)
 import { lazy, Suspense, useState } from 'react';
-import { Skeleton } from '@journey-further/salient-ui/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 
 const ColumnPicker = lazy(() => import('../components/feed/ColumnPicker'));
 const FiltersPanel = lazy(() => import('../components/feed/FiltersPanel'));
@@ -38,7 +40,7 @@ function SectionFallback() {
 type TabValue = 'feed' | 'keywords' | 'gads' | 'visualise';
 
 export default function WorkflowPage() {
-  const { rawDfBlobUrl, productCount, fileName, resetSession } = useWorkflowStore();
+  const { rawDfBlobUrl, productCount, fileName, feedSourceType, setFeedSource, resetSession } = useWorkflowStore();
   const hasFile = !!rawDfBlobUrl;
   const [activeTab, setActiveTab] = useState<TabValue>('feed');
 
@@ -47,14 +49,38 @@ export default function WorkflowPage() {
       <AppHeader />
 
       <main className="mx-auto max-w-screen-xl px-6 py-6">
-        {/* Upload area — always visible until a file is loaded */}
+        {/* Source selection + input — shown until a feed is loaded */}
         {!hasFile && (
           <div className="mx-auto max-w-lg py-16">
             <h2 className="mb-2 text-center text-lg font-semibold">Get started</h2>
             <p className="mb-6 text-center text-sm text-muted-foreground">
-              Export your product feed from Google Merchant Center, then upload it below.
+              Choose your product data source below.
             </p>
-            <UploadDropzone />
+
+            {/* Source toggle */}
+            <div className="mb-6 flex rounded-lg border border-input overflow-hidden text-sm font-medium">
+              {(
+                [
+                  { value: 'merchant_centre', label: 'Merchant Centre' },
+                  { value: 'shopify', label: 'Shopify' },
+                ] as { value: FeedSourceType; label: string }[]
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setFeedSource(value)}
+                  className={[
+                    'flex-1 py-2 px-4 transition-colors',
+                    feedSourceType === value
+                      ? 'bg-foreground text-background'
+                      : 'bg-background text-muted-foreground hover:text-foreground',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {feedSourceType === 'shopify' ? <ShopifyFetcher /> : <UploadDropzone />}
           </div>
         )}
 
@@ -69,11 +95,9 @@ export default function WorkflowPage() {
               </Badge>
               <button
                 className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-                onClick={() => {
-                  resetSession();
-                }}
+                onClick={() => resetSession()}
               >
-                Upload different file
+                {feedSourceType === 'shopify' ? 'Use different store' : 'Upload different file'}
               </button>
             </div>
 

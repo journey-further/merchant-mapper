@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@journey-further/salient-ui/ui/card';
-import { Skeleton } from '@journey-further/salient-ui/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
+import { Skeleton } from '../../ui/skeleton';
 
 interface SectionShellProps {
   title: string;

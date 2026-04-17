@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@journey-further/salient-ui/ui/button';
+import { Button } from '../../ui/button';
 import { buildKeywords } from '../../lib/api';
 import { availableKeywordFields, buildWorkflowState, emptyCombo } from '../../lib/workflow';
 import { useWorkflowStore } from '../../store/workflowStore';

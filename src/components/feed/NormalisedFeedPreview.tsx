@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@journey-further/salient-ui/ui/button';
+import { Button } from '../../ui/button';
 import { downloadUrl, getNormalisedFeed } from '../../lib/api';
 import { buildWorkflowState } from '../../lib/workflow';
 import { useWorkflowStore } from '../../store/workflowStore';

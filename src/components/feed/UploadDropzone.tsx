@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Button } from '@journey-further/salient-ui/ui/button';
+import { Button } from '../../ui/button';
 import { uploadFileToBlob } from '../../lib/blobUpload';
 import { parseFeed } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';

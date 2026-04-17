@@ -2,12 +2,16 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ColumnMeta, Combo } from '../types/api';
 
+export type FeedSourceType = 'merchant_centre' | 'shopify';
+
 interface WorkflowStore {
   // Session identity
   sessionId: string | null;
   fileHash: string | null;
   fileName: string | null;
   sheetName: string | null;
+  feedSourceType: FeedSourceType;
+  shopifyStoreUrl: string | null;
 
   // Blob URLs (replacing Parquet on disk)
   rawDfBlobUrl: string | null;
@@ -53,6 +57,7 @@ interface WorkflowStore {
   setCatSrcCol: (col: string) => void;
   setCatOptions: (wantMain: boolean, wantPenultimate: boolean, wantFinal: boolean) => void;
   setCombos: (combos: Combo[]) => void;
+  setFeedSource: (type: FeedSourceType, url?: string) => void;
   setGeoIds: (ids: string[]) => void;
   setLanguageId: (id: string) => void;
   setCombinedDfBlobUrl: (url: string) => void;
@@ -66,6 +71,8 @@ const DEFAULT_STATE = {
   fileHash: null,
   fileName: null,
   sheetName: null,
+  feedSourceType: 'merchant_centre' as FeedSourceType,
+  shopifyStoreUrl: null,
   rawDfBlobUrl: null,
   combinedDfBlobUrl: null,
   gadsDfBlobUrl: null,
@@ -117,6 +124,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
           geoIds: [],
         }),
 
+      setFeedSource: (feedSourceType, shopifyStoreUrl) =>
+        set({ feedSourceType, shopifyStoreUrl: shopifyStoreUrl ?? null }),
       setKeepMap: (keepMap) => set({ keepMap }),
       setFilters: (filters) => set({ filters }),
       setNumericFilters: (numericFilters) => set({ numericFilters }),
@@ -145,6 +154,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
         combinedDfBlobUrl: state.combinedDfBlobUrl,
         gadsDfBlobUrl: state.gadsDfBlobUrl,
         colourMapBlobUrl: state.colourMapBlobUrl,
+        feedSourceType: state.feedSourceType,
+        shopifyStoreUrl: state.shopifyStoreUrl,
         keepMap: state.keepMap,
         filters: state.filters,
         numericFilters: state.numericFilters,

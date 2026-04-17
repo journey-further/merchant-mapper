@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@journey-further/salient-ui/ui/button';
+import { Button } from '../../ui/button';
 import { applyColourMapping } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
 import SectionShell from '../shared/SectionShell';

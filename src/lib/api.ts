@@ -63,6 +63,12 @@ export async function parseFeed(params: {
   return post('/api/parse', params);
 }
 
+export async function fetchShopifyFeed(params: {
+  storeUrl: string;
+}): Promise<ParseResponse> {
+  return post('/api/fetch-shopify', params);
+}
+
 // ─── Feed steps ───────────────────────────────────────────────────────────────
 
 export async function applyColumns(params: {
