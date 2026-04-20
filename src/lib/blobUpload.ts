@@ -1,24 +1,22 @@
-import { getBlobUploadToken } from './api';
+import { upload } from '@vercel/blob/client'
 
+/**
+ * Upload a feed file directly from the browser to Vercel Blob storage.
+ *
+ * Uses @vercel/blob/client `upload()` which:
+ *   1. Calls /api/blob-token to get a short-lived client upload token.
+ *   2. Uploads the file directly to Vercel Blob — the file never passes through
+ *      a serverless function, so there is no 4.5 MB body-size limit.
+ *   3. Uses multipart upload automatically for large files.
+ *
+ * Returns the blob's downloadUrl (a time-limited signed URL suitable for
+ * passing to /api/parse).
+ */
 export async function uploadFileToBlob(file: File): Promise<string> {
-  const { uploadUrl, url } = await getBlobUploadToken(file.name, file.type || 'application/octet-stream');
-
-  const res = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
-    body: file,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Blob upload failed: ${res.status} ${res.statusText}`);
-  }
-
-  // Vercel relay returns {url} in the response body; dev server returns empty 200.
-  const ct = res.headers.get('content-type') ?? '';
-  if (ct.includes('application/json')) {
-    const data = await res.json() as { url?: string };
-    if (data.url) return data.url;
-  }
-
-  return url;
+  const blob = await upload(`mm/uploads/${file.name}`, file, {
+    access: 'private',
+    handleUploadUrl: '/api/blob-token',
+    multipart: true,
+  })
+  return blob.downloadUrl ?? blob.url
 }
