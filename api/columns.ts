@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError } from '../api/_lib/handlerUtils'
-import { applyColumnSelection, defaultKeepMap, countProducts } from '../api/_lib/core/feedProcessor'
-import { columnMeta, clicksSortedPreview } from '../api/_lib/handlerUtils'
-import { loadRows } from '../api/_lib/sessionStore'
+import { sendError } from '../api/_lib/handlerUtils.js'
+import { applyColumnSelection, defaultKeepMap, countProducts } from '../api/_lib/core/feedProcessor.js'
+import { columnMeta, clicksSortedPreview } from '../api/_lib/handlerUtils.js'
+import { loadRows } from '../api/_lib/sessionStore.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

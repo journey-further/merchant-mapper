@@ -1,4 +1,4 @@
-import { norm, toNumber, toCcy, isBlank, INVALIDS } from './utils'
+import { norm, toNumber, toCcy, isBlank, INVALIDS } from './utils.js'
 
 export type Row = Record<string, string>
 

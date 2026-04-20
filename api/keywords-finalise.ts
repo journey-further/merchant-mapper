@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError, records } from '../api/_lib/handlerUtils'
-import { loadRows, saveRows } from '../api/_lib/sessionStore'
-import { getProcessedRows } from '../api/_lib/pipeline'
-import { makeKeywords } from '../api/_lib/core/keywordBuilder'
-import type { Combo } from '../api/_lib/presets'
-import type { Row } from '../api/_lib/core/feedProcessor'
+import { sendError, records } from '../api/_lib/handlerUtils.js'
+import { loadRows, saveRows } from '../api/_lib/sessionStore.js'
+import { getProcessedRows } from '../api/_lib/pipeline.js'
+import { makeKeywords } from '../api/_lib/core/keywordBuilder.js'
+import type { Combo } from '../api/_lib/presets.js'
+import type { Row } from '../api/_lib/core/feedProcessor.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError } from '../api/_lib/handlerUtils'
-import { applyColumnSelection, applyFilters } from '../api/_lib/core/feedProcessor'
+import { sendError } from '../api/_lib/handlerUtils.js'
+import { applyColumnSelection, applyFilters } from '../api/_lib/core/feedProcessor.js'
 import {
   loadBaseColourMap, mergeNewMappings, mappingBreakdown,
   unmappedColours, addSuggestions,
-} from '../api/_lib/core/colourMapping'
-import { loadRows } from '../api/_lib/sessionStore'
-import { db, colourMappings } from '../api/_lib/db/index'
+} from '../api/_lib/core/colourMapping.js'
+import { loadRows } from '../api/_lib/sessionStore.js'
+import { db, colourMappings } from '../api/_lib/db/index.js'
 import { eq } from 'drizzle-orm'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

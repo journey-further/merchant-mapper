@@ -1,5 +1,5 @@
-import { INVALIDS } from './core/utils'
-import type { Row } from './core/feedProcessor'
+import { INVALIDS } from './core/utils.js'
+import type { Row } from './core/feedProcessor.js'
 
 export interface Combo {
   name: string

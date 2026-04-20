@@ -1,5 +1,5 @@
-import { norm } from './utils'
-import type { Row } from './feedProcessor'
+import { norm } from './utils.js'
+import type { Row } from './feedProcessor.js'
 
 const MAX_PAGES = 50
 const PAGE_SIZE = 250

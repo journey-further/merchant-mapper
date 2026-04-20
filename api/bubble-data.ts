@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError } from '../api/_lib/handlerUtils'
-import { loadRows } from '../api/_lib/sessionStore'
-import { getProcessedRows } from '../api/_lib/pipeline'
-import { findClicksCol } from '../api/_lib/core/feedProcessor'
-import { norm, toNumber, isBlank } from '../api/_lib/core/utils'
+import { sendError } from '../api/_lib/handlerUtils.js'
+import { loadRows } from '../api/_lib/sessionStore.js'
+import { getProcessedRows } from '../api/_lib/pipeline.js'
+import { findClicksCol } from '../api/_lib/core/feedProcessor.js'
+import { norm, toNumber, isBlank } from '../api/_lib/core/utils.js'
 
 const EXCLUDED_COLS = new Set(['price_currency', 'sale price_currency'])
 

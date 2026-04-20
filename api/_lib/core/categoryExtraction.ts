@@ -1,4 +1,4 @@
-import { norm } from './utils'
+import { norm } from './utils.js'
 
 export function preferredCategoryColumn(columns: string[]): string | null {
   const gpc = columns.find(c => norm(c) === 'googleproductcategory')

@@ -1,4 +1,4 @@
-import type { Row } from './feedProcessor'
+import type { Row } from './feedProcessor.js'
 
 const GADS_REST_BASE = 'https://googleads.googleapis.com/v23'
 const QPS_SLEEP_MS = 1200

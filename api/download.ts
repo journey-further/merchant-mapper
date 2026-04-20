@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import ExcelJS from 'exceljs'
-import { loadRows } from '../api/_lib/sessionStore'
-import { getProcessedRows } from '../api/_lib/pipeline'
-import { computeOpportunity, computeSalesOpportunity } from '../api/_lib/core/gadsOpportunity'
-import type { Row } from '../api/_lib/core/feedProcessor'
+import { loadRows } from '../api/_lib/sessionStore.js'
+import { getProcessedRows } from '../api/_lib/pipeline.js'
+import { computeOpportunity, computeSalesOpportunity } from '../api/_lib/core/gadsOpportunity.js'
+import type { Row } from '../api/_lib/core/feedProcessor.js'
 
 type DownloadType = 'normalised' | 'keywords-combined' | 'gads-metrics' | 'sales-opportunity' | 'raw'
 type DownloadFormat = 'csv' | 'xlsx'

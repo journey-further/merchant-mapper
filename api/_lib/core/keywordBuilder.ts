@@ -1,5 +1,5 @@
-import { norm, toNumber, toCcy, INVALIDS, isBlank } from './utils'
-import type { Row } from './feedProcessor'
+import { norm, toNumber, toCcy, INVALIDS, isBlank } from './utils.js'
+import type { Row } from './feedProcessor.js'
 
 const OUT_COLS = [
   'keyword', 'Product Count', 'Unique Product Groups',

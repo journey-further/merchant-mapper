@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError } from '../api/_lib/handlerUtils'
-import { loadRows } from '../api/_lib/sessionStore'
-import type { Row } from '../api/_lib/core/feedProcessor'
+import { sendError } from '../api/_lib/handlerUtils.js'
+import { loadRows } from '../api/_lib/sessionStore.js'
+import type { Row } from '../api/_lib/core/feedProcessor.js'
 
 const PALETTE = ['#4C6A92','#6F8F72','#B97A57','#8C6C99','#C4A46B','#5B7C99','#9E6E6E']
 const BRAND = '#2b0573'

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { norm, isBlank } from './utils'
+import { norm, isBlank } from './utils.js'
 
 export type ColourMap = Map<string, string> // normalised product_colour → generic_colour
 

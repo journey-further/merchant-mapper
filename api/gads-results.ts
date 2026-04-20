@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError, records } from '../api/_lib/handlerUtils'
-import { loadRows } from '../api/_lib/sessionStore'
-import { computeOpportunity } from '../api/_lib/core/gadsOpportunity'
+import { sendError, records } from '../api/_lib/handlerUtils.js'
+import { loadRows } from '../api/_lib/sessionStore.js'
+import { computeOpportunity } from '../api/_lib/core/gadsOpportunity.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

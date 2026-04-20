@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError } from '../api/_lib/handlerUtils'
-import { applyFilters } from '../api/_lib/core/feedProcessor'
-import { groupCandidates, computeGroupStats, applyGrouping, feedLabelRollup } from '../api/_lib/core/productGroups'
-import { loadRows } from '../api/_lib/sessionStore'
+import { sendError } from '../api/_lib/handlerUtils.js'
+import { applyFilters } from '../api/_lib/core/feedProcessor.js'
+import { groupCandidates, computeGroupStats, applyGrouping, feedLabelRollup, type GroupStats } from '../api/_lib/core/productGroups.js'
+import { loadRows } from '../api/_lib/sessionStore.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       candidates,
       groupCol: chosen,
       rollup,
-      stats: Object.entries(stats).map(([column, s]) => ({ column, groupCount: s.groupCount, skuCount: s.skuCount })),
+      stats: Object.entries(stats).map(([column, s]) => { const gs = s as GroupStats; return { column, groupCount: gs.groupCount, skuCount: gs.skuCount } }),
     })
   } catch (err) {
     sendError(res, err)

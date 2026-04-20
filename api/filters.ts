@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError, records } from '../api/_lib/handlerUtils'
+import { sendError, records } from '../api/_lib/handlerUtils.js'
 import {
   applyColumnSelection, applyFilters, applyNumericFilters,
   filterOptions, numericFilterOptions,
-} from '../api/_lib/core/feedProcessor'
-import { loadRows } from '../api/_lib/sessionStore'
+} from '../api/_lib/core/feedProcessor.js'
+import { loadRows } from '../api/_lib/sessionStore.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

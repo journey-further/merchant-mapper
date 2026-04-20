@@ -1,5 +1,5 @@
-import { norm, toNumber, toCcy, fmtInt, fmtQty, fmtSales, INVALIDS, isBlank } from './utils'
-import type { Row } from './feedProcessor'
+import { norm, toNumber, toCcy, fmtInt, fmtQty, fmtSales, INVALIDS, isBlank } from './utils.js'
+import type { Row } from './feedProcessor.js'
 
 const URL_RE = /https?:\/\/[^\s,]+/i
 

@@ -5,10 +5,10 @@
 import {
   applyColumnSelection, applyFilters, applyNumericFilters, splitPriceColumns,
   type Row,
-} from './core/feedProcessor'
-import { applyColourMapping, mergeNewMappings, loadBaseColourMap, type ColourMap } from './core/colourMapping'
-import { extractCategories } from './core/categoryExtraction'
-import { applyGrouping, computeGroupStats } from './core/productGroups'
+} from './core/feedProcessor.js'
+import { applyColourMapping, mergeNewMappings, loadBaseColourMap, type ColourMap } from './core/colourMapping.js'
+import { extractCategories } from './core/categoryExtraction.js'
+import { applyGrouping, computeGroupStats } from './core/productGroups.js'
 
 export interface PipelineParams {
   keepMap?: Record<string, boolean>

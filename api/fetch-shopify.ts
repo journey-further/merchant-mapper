@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import crypto from 'node:crypto'
-import { sendError } from '../api/_lib/handlerUtils'
-import { fetchShopifyProducts, shopifyKeepMap } from '../api/_lib/core/shopifyFetcher'
-import { countProducts } from '../api/_lib/core/feedProcessor'
-import { preferredCategoryColumn } from '../api/_lib/core/categoryExtraction'
-import { columnMeta } from '../api/_lib/handlerUtils'
-import { getOrCreateSession, saveRows } from '../api/_lib/sessionStore'
+import { sendError } from '../api/_lib/handlerUtils.js'
+import { fetchShopifyProducts, shopifyKeepMap } from '../api/_lib/core/shopifyFetcher.js'
+import { countProducts } from '../api/_lib/core/feedProcessor.js'
+import { preferredCategoryColumn } from '../api/_lib/core/categoryExtraction.js'
+import { columnMeta } from '../api/_lib/handlerUtils.js'
+import { getOrCreateSession, saveRows } from '../api/_lib/sessionStore.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { findClicksCol } from './core/feedProcessor'
-import type { Row } from './core/feedProcessor'
+import { findClicksCol } from './core/feedProcessor.js'
+import type { Row } from './core/feedProcessor.js'
 
 export function send(res: VercelResponse, status: number, body: unknown) {
   res.status(status).json(body)

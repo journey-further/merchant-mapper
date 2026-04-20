@@ -1,7 +1,7 @@
 import { put } from '@vercel/blob'
-import { db, sessions, sessionBlobs } from './db/index'
+import { db, sessions, sessionBlobs } from './db/index.js'
 import { eq, and } from 'drizzle-orm'
-import type { Row } from './core/feedProcessor'
+import type { Row } from './core/feedProcessor.js'
 
 export type BlobType = 'raw' | 'combined' | 'gads'
 

@@ -1,4 +1,4 @@
-import type { Row } from './feedProcessor'
+import type { Row } from './feedProcessor.js'
 
 const STOCK_ANCHOR = 50.0
 const SV_DIVISOR = 2000.0

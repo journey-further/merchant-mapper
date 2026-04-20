@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { sendError, records } from '../api/_lib/handlerUtils'
-import { loadRows, saveRows } from '../api/_lib/sessionStore'
-import { getGadsCredentials, fetchHistoricalMetrics } from '../api/_lib/core/gadsClient'
+import { sendError, records } from '../api/_lib/handlerUtils.js'
+import { loadRows, saveRows } from '../api/_lib/sessionStore.js'
+import { getGadsCredentials, fetchHistoricalMetrics } from '../api/_lib/core/gadsClient.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

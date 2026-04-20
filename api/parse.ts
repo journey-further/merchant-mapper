@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import crypto from 'node:crypto'
 import Papa from 'papaparse'
-import { sendError } from '../api/_lib/handlerUtils'
-import { deriveAgeGenderSegment, defaultKeepMap, countProducts } from '../api/_lib/core/feedProcessor'
-import { preferredCategoryColumn } from '../api/_lib/core/categoryExtraction'
-import { columnMeta, clicksSortedPreview } from '../api/_lib/handlerUtils'
-import { getOrCreateSession, saveRows } from '../api/_lib/sessionStore'
-import type { Row } from '../api/_lib/core/feedProcessor'
+import { sendError } from '../api/_lib/handlerUtils.js'
+import { deriveAgeGenderSegment, defaultKeepMap, countProducts } from '../api/_lib/core/feedProcessor.js'
+import { preferredCategoryColumn } from '../api/_lib/core/categoryExtraction.js'
+import { columnMeta, clicksSortedPreview } from '../api/_lib/handlerUtils.js'
+import { getOrCreateSession, saveRows } from '../api/_lib/sessionStore.js'
+import type { Row } from '../api/_lib/core/feedProcessor.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
