@@ -1,5 +1,28 @@
 const MAX_CELL_LEN = 60;
 
+/** Returns true only for plain numeric strings (integers or decimals, optional minus). */
+function looksNumeric(val: string): boolean {
+  return /^-?\d+(\.\d+)?$/.test(val.trim());
+}
+
+/** Format a numeric value with commas / k / m for readability. */
+function formatNumber(val: string): string {
+  const n = parseFloat(val);
+  if (isNaN(n)) return val;
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1_000_000) {
+    const formatted = (abs / 1_000_000).toFixed(1).replace(/\.0$/, '');
+    return `${sign}${formatted}m`;
+  }
+  if (abs >= 10_000) {
+    const formatted = (abs / 1_000).toFixed(1).replace(/\.0$/, '');
+    return `${sign}${formatted}k`;
+  }
+  // 1,000–9,999: comma-separated, up to 2 decimal places
+  return n.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+}
+
 function truncate(val: string): { display: string; truncated: boolean } {
   if (val.length <= MAX_CELL_LEN) return { display: val, truncated: false };
   return { display: val.slice(0, MAX_CELL_LEN) + '…', truncated: true };
@@ -53,8 +76,10 @@ export default function DataTable({ rows, columns, maxHeight = '360px' }: DataTa
             >
               {cols.map((c) => {
                 const raw = String(row[c] ?? '');
-                const { display, truncated } = truncate(raw);
-                const url = isUrl(raw);
+                const numeric = looksNumeric(raw);
+                const formatted = numeric ? formatNumber(raw) : raw;
+                const { display, truncated } = truncate(formatted);
+                const url = !numeric && isUrl(raw);
                 return (
                   <td
                     key={c}
@@ -67,6 +92,7 @@ export default function DataTable({ rows, columns, maxHeight = '360px' }: DataTa
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
+                      textAlign: numeric ? 'right' : 'left',
                     }}
                   >
                     {url ? (

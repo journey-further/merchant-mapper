@@ -20,7 +20,7 @@ export default function GadsCharts() {
   });
 
   return (
-    <SectionShell title="Google Ads Charts" loading={query.isLoading}>
+    <SectionShell title="Google Ads Charts" loading={query.isLoading} fetching={query.isFetching}>
       {!combinedDfBlobUrl || !gadsDfBlobUrl ? (
         <p className="text-sm text-muted-foreground">
           Upload Google Ads metrics to render the search-volume charts.

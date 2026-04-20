@@ -27,7 +27,7 @@ export default function ProductGroups() {
   }, [groupCol, query.data?.groupCol, setGroupCol]);
 
   return (
-    <SectionShell title="Product Groups" loading={query.isLoading}>
+    <SectionShell title="Product Groups" loading={query.isLoading} fetching={query.isFetching}>
       {query.error && <p className="text-sm text-destructive">Failed to load product groups.</p>}
 
       {query.data && (

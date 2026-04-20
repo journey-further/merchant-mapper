@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { getFilters } from '../../lib/api';
@@ -7,6 +8,8 @@ import type { NumericFilterOption } from '../../types/api';
 
 export default function FiltersPanel() {
   const { sessionId, rawDfBlobUrl, keepMap, filters, numericFilters, setFilters, setNumericFilters } = useWorkflowStore();
+  // Local input state so the store (and API refetch) only updates on blur/Enter
+  const [localInputs, setLocalInputs] = useState<Record<string, { gte: string; lte: string }>>({});
 
   const query = useQuery({
     queryKey: ['filters', sessionId, rawDfBlobUrl, keepMap, filters, numericFilters],
@@ -32,7 +35,19 @@ export default function FiltersPanel() {
     setFilters(updated);
   }
 
-  function setNumericBound(column: string, bound: 'gte' | 'lte', raw: string) {
+  function getLocalInput(column: string, bound: 'gte' | 'lte'): string {
+    const local = localInputs[column]?.[bound];
+    if (local !== undefined) return local;
+    const stored = numericFilters[column]?.[bound];
+    return stored !== undefined ? String(stored) : '';
+  }
+
+  function setLocalInput(column: string, bound: 'gte' | 'lte', value: string) {
+    setLocalInputs(prev => ({ ...prev, [column]: { gte: getLocalInput(column, 'gte'), lte: getLocalInput(column, 'lte'), [bound]: value } }));
+  }
+
+  function commitNumericBound(column: string, bound: 'gte' | 'lte') {
+    const raw = localInputs[column]?.[bound] ?? '';
     const val = raw === '' ? undefined : Number(raw);
     const current = numericFilters[column] ?? {};
     const next = { ...current, [bound]: val };
@@ -45,8 +60,15 @@ export default function FiltersPanel() {
     }
   }
 
+  function clearNumericFilter(column: string) {
+    setLocalInputs(prev => { const n = { ...prev }; delete n[column]; return n; });
+    const updated = { ...numericFilters };
+    delete updated[column];
+    setNumericFilters(updated);
+  }
+
   return (
-    <SectionShell title="Filters" loading={query.isLoading}>
+    <SectionShell title="Filters" loading={query.isLoading} fetching={query.isFetching}>
       {query.error && <p className="text-sm text-destructive">Failed to load filters.</p>}
 
       {query.data && (
@@ -83,11 +105,13 @@ export default function FiltersPanel() {
                           type="number"
                           className="w-28 rounded-md border bg-background px-2 py-1 text-sm"
                           placeholder={String(opt.min)}
-                          value={current.gte ?? ''}
+                          value={getLocalInput(column, 'gte')}
                           min={opt.min}
                           max={opt.max}
                           step="any"
-                          onChange={(e) => setNumericBound(column, 'gte', e.target.value)}
+                          onChange={(e) => setLocalInput(column, 'gte', e.target.value)}
+                          onBlur={() => commitNumericBound(column, 'gte')}
+                          onKeyDown={(e) => { if (e.key === 'Enter') commitNumericBound(column, 'gte') }}
                         />
                       </label>
                       <label className="flex items-center gap-2 text-sm">
@@ -96,21 +120,19 @@ export default function FiltersPanel() {
                           type="number"
                           className="w-28 rounded-md border bg-background px-2 py-1 text-sm"
                           placeholder={String(opt.max)}
-                          value={current.lte ?? ''}
+                          value={getLocalInput(column, 'lte')}
                           min={opt.min}
                           max={opt.max}
                           step="any"
-                          onChange={(e) => setNumericBound(column, 'lte', e.target.value)}
+                          onChange={(e) => setLocalInput(column, 'lte', e.target.value)}
+                          onBlur={() => commitNumericBound(column, 'lte')}
+                          onKeyDown={(e) => { if (e.key === 'Enter') commitNumericBound(column, 'lte') }}
                         />
                       </label>
                       {(current.gte !== undefined || current.lte !== undefined) && (
                         <button
                           className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-                          onClick={() => {
-                            const updated = { ...numericFilters };
-                            delete updated[column];
-                            setNumericFilters(updated);
-                          }}
+                          onClick={() => clearNumericFilter(column)}
                         >
                           Clear
                         </button>

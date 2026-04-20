@@ -32,7 +32,7 @@ const PALETTE = [
 
 interface DataNode {
   title?: string;
-  clicks?: number;
+  value?: number;
   category?: string;
   name?: string;
   children?: DataNode[];
@@ -42,7 +42,7 @@ interface TooltipState {
   x: number;
   y: number;
   title: string;
-  clicks: number;
+  value: number;
 }
 
 export default function PackChart() {
@@ -80,13 +80,6 @@ export default function PackChart() {
     staleTime: 60_000,
   });
 
-  // Once we have candidates, auto-select a sensible default if none chosen yet
-  useEffect(() => {
-    if (!groupCol && data?.groupCandidates?.length) {
-      const sorted = sortByPriority(data.groupCandidates);
-      setGroupCol(sorted[0] ?? '');
-    }
-  }, [data?.groupCandidates, groupCol]);
 
   const sortedCandidates = useMemo(
     () => sortByPriority(data?.groupCandidates ?? []),
@@ -117,12 +110,12 @@ export default function PackChart() {
         })),
       };
       root = d3h.pack<DataNode>().size([width, height]).padding(6)(
-        d3h.hierarchy(treeData).sum((d) => Math.max((d as { clicks?: number }).clicks ?? 0, 1))
+        d3h.hierarchy(treeData).sum((d) => Math.max((d as { value?: number }).value ?? 0, 1))
       );
     } else {
       const treeData: DataNode = { children: items as DataNode[] };
       root = d3h.pack<DataNode>().size([width, height]).padding(2)(
-        d3h.hierarchy(treeData).sum((d) => Math.max((d as { clicks?: number }).clicks ?? 0, 1))
+        d3h.hierarchy(treeData).sum((d) => Math.max((d as { value?: number }).value ?? 0, 1))
       );
     }
 
@@ -207,7 +200,7 @@ export default function PackChart() {
                   cx={c.x} cy={c.y} r={Math.max(c.r, 1)}
                   fill={color} fillOpacity={0.85} stroke="white" strokeWidth={0.5}
                   style={{ cursor: 'pointer' }}
-                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, title: item.title ?? '', clicks: item.clicks ?? 0 })}
+                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, title: item.title ?? '', value: item.value ?? 0 })}
                   onMouseMove={(e) => setTooltip((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
                   onMouseLeave={() => setTooltip(null)}
                 />
@@ -257,7 +250,11 @@ export default function PackChart() {
             style={{ left: tooltip.x + 14, top: tooltip.y - 10 }}
           >
             <div className="font-medium leading-tight">{tooltip.title}</div>
-            <div className="mt-0.5 text-muted-foreground">{tooltip.clicks.toLocaleString()} clicks</div>
+            {data?.valueLabel && (
+              <div className="mt-0.5 text-muted-foreground">
+                {tooltip.value.toLocaleString()} {data.valueLabel}
+              </div>
+            )}
           </div>
         )}
       </div>

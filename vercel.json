@@ -3,8 +3,7 @@
   "outputDirectory": "dist",
   "regions": ["lhr1"],
   "functions": {
-    "api/**/*.py": {
-      "includeFiles": "api/_lib/**",
+    "api/**/*.ts": {
       "maxDuration": 60
     }
   },

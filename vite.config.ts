@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const devApiHost = process.env.VITE_DEV_API_HOST ?? '127.0.0.1'
-const devApiPort = process.env.VITE_DEV_API_PORT ?? '8787'
+const devApiPort = process.env.VITE_DEV_API_PORT ?? '3000'
 const devApiTarget = `http://${devApiHost}:${devApiPort}`
 
 // https://vite.dev/config/

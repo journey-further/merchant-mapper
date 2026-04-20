@@ -3,7 +3,6 @@ import { Button } from '../../ui/button';
 import { uploadFileToBlob } from '../../lib/blobUpload';
 import { parseFeed } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { v4 as uuidv4 } from 'uuid';
 
 export default function UploadDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -17,14 +16,13 @@ export default function UploadDropzone() {
     try {
       const blobUrl = await uploadFileToBlob(file);
       setStatus('parsing');
-      const sessionId = uuidv4();
       const result = await parseFeed({
-        session: sessionId,
+        session: '',
         blobUrl,
         filename: file.name,
       });
       setSession({
-        sessionId,
+        sessionId: result.sessionId,
         fileHash: result.fileHash,
         fileName: result.fileName,
         sheetName: result.sheetName,

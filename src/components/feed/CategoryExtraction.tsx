@@ -42,16 +42,20 @@ export default function CategoryExtraction() {
   }, [catSrcCol, query.data?.catSrcCol, setCatSrcCol]);
 
   return (
-    <SectionShell title="Category Extraction" loading={query.isLoading}>
+    <SectionShell title="Category Extraction" loading={query.isLoading} fetching={query.isFetching}>
       {!catSrcCol ? (
         <p className="text-sm text-muted-foreground">No category source column is available in the current feed.</p>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-[minmax(0,280px)_1fr]">
-            <label className="space-y-2 text-sm">
-              <span className="font-medium">Category source</span>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Split a column like product&nbsp;type into separate category fields.
+          </p>
+
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="space-y-1 text-sm">
+              <span className="font-medium">Column to split into categories</span>
               <select
-                className="block w-full rounded-md border bg-background px-3 py-2"
+                className="block rounded-md border bg-background px-3 py-2"
                 value={catSrcCol}
                 onChange={(e) => setCatSrcCol(e.target.value)}
               >
@@ -63,14 +67,14 @@ export default function CategoryExtraction() {
               </select>
             </label>
 
-            <div className="flex flex-wrap items-center gap-4 pt-7 text-sm">
+            <div className="flex flex-wrap items-center gap-4 pb-2 text-sm">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={wantMain}
                   onChange={(e) => setCatOptions(e.target.checked, wantPenultimate, wantFinal)}
                 />
-                Main category
+                Create <strong>Main Category</strong> <span className="text-muted-foreground">(first segment)</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -78,7 +82,7 @@ export default function CategoryExtraction() {
                   checked={wantPenultimate}
                   onChange={(e) => setCatOptions(wantMain, e.target.checked, wantFinal)}
                 />
-                Penultimate category
+                Create <strong>Penultimate Category</strong> <span className="text-muted-foreground">(second-to-last)</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -86,13 +90,20 @@ export default function CategoryExtraction() {
                   checked={wantFinal}
                   onChange={(e) => setCatOptions(wantMain, wantPenultimate, e.target.checked)}
                 />
-                Final category
+                Create <strong>Final Category</strong> <span className="text-muted-foreground">(last segment)</span>
               </label>
             </div>
           </div>
 
+          <p className="mt-2 text-xs text-muted-foreground">Updates apply automatically.</p>
+
           {query.error && <p className="mt-3 text-sm text-destructive">Failed to extract categories.</p>}
-          {query.data && <DataTable rows={query.data.preview} maxHeight="320px" />}
+
+          {query.data && (
+            <div className="mt-4">
+              <DataTable rows={query.data.preview} maxHeight="360px" />
+            </div>
+          )}
         </>
       )}
     </SectionShell>

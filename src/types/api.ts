@@ -15,6 +15,7 @@ export interface ParseResponse {
   sheets: string[] | null;
   rawDfBlobUrl: string;
   fileHash: string;
+  sessionId: string;
   catSrcCol: string | null;
 }
 
@@ -144,7 +145,8 @@ export interface GadsChartsResponse {
 }
 
 export interface BubbleDataResponse {
-  items: Array<{ title: string; clicks: number; category: string }>;
+  items: Array<{ title: string; value: number; category: string }>;
   total: number;
   groupCandidates: string[];
+  valueLabel: string;
 }

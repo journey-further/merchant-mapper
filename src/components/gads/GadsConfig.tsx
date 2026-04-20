@@ -39,6 +39,7 @@ export default function GadsConfig() {
     try {
       const result = await fetchGadsVolumes({
         combinedDfBlobUrl,
+        sessionId,
         geoIds: [selectedCountry],
         languageId,
       });
@@ -61,7 +62,7 @@ export default function GadsConfig() {
     : [];
 
   return (
-    <SectionShell title="Google Ads Search Volumes" loading={query.isLoading}>
+    <SectionShell title="Google Ads Search Volumes" loading={query.isLoading} fetching={query.isFetching}>
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
           Fetch seasonal search volume history. Defaults to United Kingdom and English.

@@ -37,6 +37,7 @@ venv/
 .env
 .env.*
 google-ads.yaml
+.npmrc
 
 # Claude Code local config
 .claude/

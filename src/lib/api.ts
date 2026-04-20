@@ -36,7 +36,9 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function get<T>(path: string, params?: Record<string, string>): Promise<T> {
-  const url = params ? `${path}?${new URLSearchParams(params)}` : path;
+  const url = params
+    ? `${path}?${Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')}`
+    : path;
   const res = await fetch(url);
   if (!res.ok) {
     const text = await res.text();
@@ -177,6 +179,7 @@ export async function getGadsConstants(): Promise<GadsConstantsResponse> {
 
 export async function fetchGadsVolumes(params: {
   combinedDfBlobUrl: string;
+  sessionId: string;
   geoIds: string[];
   languageId: string;
 }): Promise<GadsUploadResponse> {
@@ -215,13 +218,7 @@ export async function getBubbleData(params: {
   groupCol?: string;
   state?: object;
 }): Promise<BubbleDataResponse> {
-  return get('/api/bubble-data', {
-    session: params.session,
-    rawDfUrl: params.rawDfUrl,
-    n: String(params.n),
-    ...(params.groupCol ? { groupCol: params.groupCol } : {}),
-    ...(params.state ? { state: JSON.stringify(params.state) } : {}),
-  });
+  return post('/api/bubble-data', params);
 }
 
 // ─── Download ─────────────────────────────────────────────────────────────────

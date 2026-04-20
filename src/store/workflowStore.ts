@@ -144,7 +144,6 @@ export const useWorkflowStore = create<WorkflowStore>()(
     }),
     {
       name: 'merchant-mapper-session',
-      // Don't persist columns — they're re-fetched on parse; only persist config
       partialize: (state) => ({
         sessionId: state.sessionId,
         fileHash: state.fileHash,
@@ -169,6 +168,9 @@ export const useWorkflowStore = create<WorkflowStore>()(
         geoIds: state.geoIds,
         languageId: state.languageId,
         productCount: state.productCount,
+        // Persist columns so keyword field dropdowns remain fully populated after
+        // navigation or page reload without requiring a re-upload.
+        columns: state.columns,
       }),
     }
   )

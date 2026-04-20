@@ -28,7 +28,7 @@ export default function ColourSummary() {
   }, [colourCol, query.data?.colourCol, setColourCol]);
 
   return (
-    <SectionShell title="Colour Summary" loading={query.isLoading}>
+    <SectionShell title="Colour Summary" loading={query.isLoading} fetching={query.isFetching}>
       {query.error && <p className="text-sm text-destructive">Failed to load colour summary.</p>}
 
       {query.data && (

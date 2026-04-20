@@ -1,22 +1,47 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '../../ui/button';
-import { buildKeywords } from '../../lib/api';
-import { availableKeywordFields, buildWorkflowState, emptyCombo } from '../../lib/workflow';
+import { buildKeywords, getNormalisedFeed } from '../../lib/api';
+import { sortByPriority, buildWorkflowState, emptyCombo } from '../../lib/workflow';
 import { useWorkflowStore } from '../../store/workflowStore';
 import SectionShell from '../shared/SectionShell';
 import DataTable from '../shared/DataTable';
 import type { Combo } from '../../types/api';
 
+// Columns excluded from keyword field pickers — helper/internal columns only.
+const EXCLUDED_FIELDS = new Set(['price_currency', 'sale price_currency']);
+
 export default function KeywordBuilder() {
   const store = useWorkflowStore();
   const { sessionId, rawDfBlobUrl, colourMapBlobUrl, combos, setCombos } = store;
   const [presetLoading, setPresetLoading] = useState(false);
-  const fields = availableKeywordFields(store);
   const state = buildWorkflowState(store);
 
+  // Subscribe to the normalised-feed cache that NormalisedFeedMini already populates.
+  // Same query key = instant cache hit, zero extra network calls.
+  const normFeedQuery = useQuery({
+    queryKey: ['normalised-feed', sessionId, rawDfBlobUrl, colourMapBlobUrl, state],
+    queryFn: () =>
+      getNormalisedFeed({
+        session: sessionId!,
+        rawDfUrl: rawDfBlobUrl!,
+        colourMapBlobUrl: colourMapBlobUrl ?? undefined,
+        state,
+      }),
+    enabled: !!sessionId && !!rawDfBlobUrl,
+    staleTime: 60_000,
+  });
+
+  // Derive available fields directly from the normalised feed column headers.
+  const fields = sortByPriority(
+    Object.keys(normFeedQuery.data?.preview[0] ?? {}).filter((c) => !EXCLUDED_FIELDS.has(c))
+  );
+
+  // Exclude combo.name from the query key — names don't affect keyword results,
+  // so typing a list name shouldn't trigger an API refetch.
+  const comboQueryKey = combos.map(({ fields, splitAmpersand }) => ({ fields, splitAmpersand }));
   const query = useQuery({
-    queryKey: ['keywords', sessionId, rawDfBlobUrl, colourMapBlobUrl, state, combos],
+    queryKey: ['keywords', sessionId, rawDfBlobUrl, colourMapBlobUrl, state, comboQueryKey],
     queryFn: () =>
       buildKeywords({
         session: sessionId!,
@@ -51,7 +76,7 @@ export default function KeywordBuilder() {
   }
 
   return (
-    <SectionShell title="Keyword Builder" loading={query.isLoading}>
+    <SectionShell title="Keyword Builder" loading={query.isLoading} fetching={query.isFetching}>
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setCombos([...combos, emptyCombo()])}>

@@ -14,7 +14,7 @@ export default function NormalisedFeedMini() {
   const store = useWorkflowStore();
   const { sessionId, rawDfBlobUrl, colourMapBlobUrl } = store;
   const state = buildWorkflowState(store);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const query = useQuery({
     queryKey: ['normalised-feed', sessionId, rawDfBlobUrl, colourMapBlobUrl, state],
@@ -25,7 +25,7 @@ export default function NormalisedFeedMini() {
         colourMapBlobUrl: colourMapBlobUrl ?? undefined,
         state,
       }),
-    enabled: !!sessionId && !!rawDfBlobUrl && open,
+    enabled: !!sessionId && !!rawDfBlobUrl,
     staleTime: 60_000,
   });
 

@@ -33,7 +33,7 @@ export default function ColumnPicker() {
   }
 
   return (
-    <SectionShell title="Columns" loading={query.isLoading}>
+    <SectionShell title="Columns" loading={query.isLoading} fetching={query.isFetching}>
       {query.error && <p className="text-sm text-destructive">Failed to load column options.</p>}
 
       {query.data && (

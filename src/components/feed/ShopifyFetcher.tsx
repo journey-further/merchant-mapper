@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { Button } from '../../ui/button';
 import { fetchShopifyFeed } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { v4 as uuidv4 } from 'uuid';
 
 type Status = 'idle' | 'fetching' | 'error';
 
@@ -23,10 +22,9 @@ export default function ShopifyFetcher() {
     setFeedSource('shopify', raw);
 
     try {
-      const sessionId = uuidv4();
       const result = await fetchShopifyFeed({ storeUrl: raw });
       setSession({
-        sessionId,
+        sessionId: result.sessionId,
         fileHash: result.fileHash,
         fileName: result.fileName,
         sheetName: result.sheetName,

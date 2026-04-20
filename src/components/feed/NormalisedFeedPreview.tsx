@@ -50,7 +50,7 @@ export default function NormalisedFeedPreview({ onNext }: Props) {
     : '#';
 
   return (
-    <SectionShell title="Normalised Feed" loading={query.isLoading}>
+    <SectionShell title="Normalised Feed" loading={query.isLoading} fetching={query.isFetching}>
       {query.error && <p className="text-sm text-destructive">Failed to build the normalised feed.</p>}
 
       {query.data && (
