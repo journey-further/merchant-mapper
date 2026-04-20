@@ -32,7 +32,7 @@ export default function GadsConfig() {
   const selectedCountry = geoIds[0] ?? UK_CRITERIA_ID;
 
   async function onFetch() {
-    if (!combinedDfBlobUrl) return;
+    if (!combinedDfBlobUrl || !sessionId) return;
     setLoading(true);
     setError('');
     setSuccess('');
