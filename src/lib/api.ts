@@ -243,5 +243,5 @@ export function downloadUrl(params: {
   if (params.gadsDfBlobUrl) p.gadsDfBlobUrl = params.gadsDfBlobUrl;
   if (params.colourMapBlobUrl) p.colourMapBlobUrl = params.colourMapBlobUrl;
   if (params.state) p.state = params.state;
-  return `/api/download?${new URLSearchParams(p)}`;
+  return `/api/download?${Object.entries(p).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')}`;
 }

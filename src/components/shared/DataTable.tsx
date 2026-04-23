@@ -1,5 +1,12 @@
 const MAX_CELL_LEN = 60;
 
+// Columns whose values should never be abbreviated even if they look numeric.
+const IDENTIFIER_COL = /\b(id|ids|mpn|gtin|sku|barcode|code|ref|number|num)\b/i;
+
+function isIdentifierCol(col: string): boolean {
+  return IDENTIFIER_COL.test(col);
+}
+
 /** Returns true only for plain numeric strings (integers or decimals, optional minus). */
 function looksNumeric(val: string): boolean {
   return /^-?\d+(\.\d+)?$/.test(val.trim());
@@ -76,7 +83,7 @@ export default function DataTable({ rows, columns, maxHeight = '360px' }: DataTa
             >
               {cols.map((c) => {
                 const raw = String(row[c] ?? '');
-                const numeric = looksNumeric(raw);
+                const numeric = looksNumeric(raw) && !isIdentifierCol(c);
                 const formatted = numeric ? formatNumber(raw) : raw;
                 const { display, truncated } = truncate(formatted);
                 const url = !numeric && isUrl(raw);

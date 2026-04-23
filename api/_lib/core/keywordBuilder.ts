@@ -31,7 +31,7 @@ export function makeKeywords(rows: Row[], cols: string[], explodeAmpersand = fal
   const allCols = Object.keys(rows[0])
   const priceCol = findCol(allCols, 'price')
   const priceCcyCol = findCol(allCols, 'price_currency')
-  const qtyCol = findCol(allCols, 'quantity', 'qauntity')
+  const qtyCol = findCol(allCols, 'quantity', 'qauntity', 'sell on google quantity')
   const clicksCol = findCol(allCols, 'all clicks', 'all_clicks', '28 day clicks', 'clicks')
   const hasGroupId = allCols.includes('image_group_id')
 

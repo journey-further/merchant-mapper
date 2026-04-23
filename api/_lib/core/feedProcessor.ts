@@ -50,8 +50,8 @@ export function deriveAgeGenderSegment(rows: Row[]): Row[] {
 const RECOMMENDED_RAW = [
   'title', 'availability', 'price', 'brand', 'gtin', 'mpn', 'condition',
   'language', 'agegroup', 'producttype', 'gender', 'color', 'imagelink',
-  'additionalimagelink', 'feedlabel', 'itemgroupid', 'quantity',
-  'googleproductcategory', 'agegendersegment', 'allclicks', 'material',
+  'additionalimagelink', 'feedlabel', 'itemgroupid', 'quantity', 'sellongooglequantity',
+  'googleproductcategory', 'agegendersegment', 'allclicks', 'material', 'link', 'size',
 ]
 
 export function defaultKeepMap(columns: string[]): Record<string, boolean> {

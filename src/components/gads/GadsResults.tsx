@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { downloadUrl, getGadsResults } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
+import { buildWorkflowState } from '../../lib/workflow';
 import SectionShell from '../shared/SectionShell';
 import DataTable from '../shared/DataTable';
 import { Button } from '../../ui/button';
@@ -21,10 +22,10 @@ function DownloadGroup({
       <p className="text-sm font-medium">{label}</p>
       <p className="text-xs text-muted-foreground">{description}</p>
       <div className="flex gap-2 pt-0.5">
-        <Button asChild size="sm">
+        <Button asChild size="sm" variant="outline">
           <a href={csvHref} download>Download CSV</a>
         </Button>
-        <Button asChild size="sm" variant="outline">
+        <Button asChild size="sm" variant="outline" className="bg-[#F3F4F6] hover:bg-[#E5E7EB]">
           <a href={xlsxHref} download>Download XLSX</a>
         </Button>
       </div>
@@ -33,7 +34,8 @@ function DownloadGroup({
 }
 
 export default function GadsResults() {
-  const { sessionId, combinedDfBlobUrl, gadsDfBlobUrl } = useWorkflowStore();
+  const store = useWorkflowStore();
+  const { sessionId, rawDfBlobUrl, combinedDfBlobUrl, gadsDfBlobUrl } = store;
 
   const query = useQuery({
     queryKey: ['gads-results', sessionId, combinedDfBlobUrl, gadsDfBlobUrl],
@@ -47,6 +49,7 @@ export default function GadsResults() {
   });
 
   const ready = !!combinedDfBlobUrl && !!gadsDfBlobUrl && !!sessionId;
+  const combinedReportReady = ready && !!rawDfBlobUrl;
 
   function dlUrl(type: string, format: 'csv' | 'xlsx') {
     if (!ready) return '#';
@@ -56,6 +59,19 @@ export default function GadsResults() {
       format,
       combinedDfUrl: combinedDfBlobUrl!,
       gadsDfBlobUrl: gadsDfBlobUrl!,
+    });
+  }
+
+  function combinedReportUrl() {
+    if (!combinedReportReady) return '#';
+    return downloadUrl({
+      session: sessionId!,
+      type: 'combined-report',
+      format: 'xlsx',
+      rawDfUrl: rawDfBlobUrl!,
+      combinedDfUrl: combinedDfBlobUrl!,
+      gadsDfBlobUrl: gadsDfBlobUrl!,
+      state: JSON.stringify(buildWorkflowState(store)),
     });
   }
 
@@ -79,9 +95,17 @@ export default function GadsResults() {
           </div>
 
           {/* Download CTAs */}
-          <div className="rounded-md border p-4">
-            <p className="mb-4 text-sm font-semibold">Export your data</p>
-            <div className="flex flex-wrap gap-8">
+          <div className="rounded-md border p-4 space-y-5">
+            <p className="text-sm font-semibold">Export your data</p>
+            <Button asChild size="sm" disabled={!combinedReportReady}>
+              <a href={combinedReportUrl()} download="combined-report.xlsx">
+                Download Combined Spreadsheet
+              </a>
+            </Button>
+            <p className="text-xs text-muted-foreground -mt-3">
+              Single XLSX with Sales Opportunity, GAds Metrics, volume charts data, and normalised feed — all in one file.
+            </p>
+            <div className="border-t pt-4 flex flex-wrap gap-8">
               <DownloadGroup
                 label="Keywords with GAds Metrics"
                 description="One row per keyword per month — search volumes, competition, close variants."

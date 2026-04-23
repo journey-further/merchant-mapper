@@ -71,7 +71,7 @@ export function feedLabelRollup(rows: Row[]): Record<string, string>[] {
   const columns = Object.keys(rows[0])
   const feedLabelCol = findCol(columns, 'feed label')
   const priceCol = findCol(columns, 'price')
-  const qtyCol = findCol(columns, 'quantity') ?? findCol(columns, 'qauntity')
+  const qtyCol = findCol(columns, 'quantity') ?? findCol(columns, 'qauntity') ?? findCol(columns, 'sell on google quantity')
 
   type Bucket = { skuRows: number; groups: Set<string>; totalQty: number; totalSales: number; currency: string }
   const buckets = new Map<string, Bucket>()

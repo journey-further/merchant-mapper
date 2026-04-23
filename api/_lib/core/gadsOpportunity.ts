@@ -25,7 +25,7 @@ export function computeOpportunity(combinedRows: Row[], gadsRows: Row[]): Row[] 
     'list_name','keyword','Product Count','Unique Product Groups',
     'Clicks (28d)','Clicks Monthly Est','Total Quantity','Sales Currency','Total Sales Value',
     'avg_monthly_searches','competition_level','competition_index',
-    'year','month','monthly_searches','exact_match','matched_to','close_variants',
+    'year','month','date','monthly_searches','exact_match','matched_to','close_variants',
   ]
 
   const out: Row[] = []
@@ -37,6 +37,9 @@ export function computeOpportunity(combinedRows: Row[], gadsRows: Row[]): Row[] 
       merged.keyword_norm = kn
       merged.exact_match = String(kn === String(gRow.canonical_keyword ?? '').toLowerCase().trim())
       merged.matched_to = String(gRow.canonical_keyword ?? '')
+      const yr = String(gRow.year ?? '').trim()
+      const mo = String(gRow.month ?? '').trim().padStart(2, '0')
+      merged.date = yr && mo !== '00' ? `${yr}-${mo}-01` : ''
       out.push(merged)
     }
   }
