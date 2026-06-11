@@ -37,7 +37,12 @@ interface WorkflowStore {
   columns: ColumnMeta[];
   productCount: number;
 
+  // True once the first batch of feed queries have resolved after a fresh upload.
+  // Defaults to true so persisted sessions don't block on page reload.
+  feedDataReady: boolean;
+
   // Actions
+  setFeedDataReady: () => void;
   setSession: (params: {
     sessionId: string;
     fileHash: string;
@@ -91,6 +96,7 @@ const DEFAULT_STATE = {
   languageId: '1000', // English default
   columns: [],
   productCount: 0,
+  feedDataReady: true,
 };
 
 export const useWorkflowStore = create<WorkflowStore>()(
@@ -98,8 +104,11 @@ export const useWorkflowStore = create<WorkflowStore>()(
     (set) => ({
       ...DEFAULT_STATE,
 
+      setFeedDataReady: () => set({ feedDataReady: true }),
+
       setSession: (params) =>
         set({
+          feedDataReady: false,
           sessionId: params.sessionId,
           fileHash: params.fileHash,
           fileName: params.fileName,

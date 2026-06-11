@@ -5,6 +5,7 @@
   "functions": {
     "api/**/*.ts": {
       "maxDuration": 60,
+      "memory": 3009,
       "includeFiles": "api/_lib/**"
     }
   },

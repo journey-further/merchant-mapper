@@ -3,6 +3,7 @@ import { Button } from '../../ui/button';
 import { uploadFileToBlob } from '../../lib/blobUpload';
 import { parseFeed } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
+import LoadingIcon from '../LoadingIcon';
 
 export default function UploadDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,16 +60,26 @@ export default function UploadDropzone() {
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
     >
-      <p className="mb-1 text-sm font-medium">Upload a feed file</p>
-      <p className="mb-4 text-xs text-muted-foreground">TSV, CSV, Excel, or ZIP — up to 100 MB</p>
+      {busy ? (
+        <div className="flex flex-col items-center gap-3">
+          <LoadingIcon size={60} />
+          <p className="text-sm text-muted-foreground">
+            {status === 'uploading' ? 'Uploading…' : 'Parsing…'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="mb-1 text-sm font-medium">Upload a feed file</p>
+          <p className="mb-4 text-xs text-muted-foreground">TSV, CSV, Excel, or ZIP — up to 200 MB</p>
 
-      <Button
-        variant="outline"
-        disabled={busy}
-        onClick={() => inputRef.current?.click()}
-      >
-        {busy ? (status === 'uploading' ? 'Uploading…' : 'Parsing…') : 'Choose file'}
-      </Button>
+          <Button
+            variant="outline"
+            onClick={() => inputRef.current?.click()}
+          >
+            Choose file
+          </Button>
+        </>
+      )}
 
       <input
         ref={inputRef}

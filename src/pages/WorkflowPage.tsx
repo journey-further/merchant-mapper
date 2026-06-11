@@ -8,6 +8,7 @@ import type { FeedSourceType } from '../store/workflowStore';
 
 // Feed tab sections (lazy-imported to keep initial bundle small)
 import { lazy, Suspense, useState } from 'react';
+import LoadingIcon from '../components/LoadingIcon';
 import { Skeleton } from '../ui/skeleton';
 
 const ColumnPicker = lazy(() => import('../components/feed/ColumnPicker'));
@@ -40,7 +41,7 @@ function SectionFallback() {
 type TabValue = 'feed' | 'keywords' | 'gads' | 'visualise';
 
 export default function WorkflowPage() {
-  const { rawDfBlobUrl, productCount, fileName, feedSourceType, setFeedSource, resetSession } = useWorkflowStore();
+  const { rawDfBlobUrl, productCount, fileName, feedSourceType, feedDataReady, setFeedSource, resetSession } = useWorkflowStore();
   const hasFile = !!rawDfBlobUrl;
   const [activeTab, setActiveTab] = useState<TabValue>('feed');
 
@@ -101,7 +102,14 @@ export default function WorkflowPage() {
               </button>
             </div>
 
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+            {!feedDataReady && (
+              <div className="flex flex-col items-center gap-3 py-20">
+                <LoadingIcon size={60} />
+                <p className="text-sm text-muted-foreground">Loading feed…</p>
+              </div>
+            )}
+
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className={feedDataReady ? '' : 'hidden'}>
               <TabsList className="mb-6">
                 <TabsTrigger value="feed">Feed</TabsTrigger>
                 <TabsTrigger value="keywords">Keywords</TabsTrigger>

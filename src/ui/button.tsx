@@ -16,9 +16,9 @@ const buttonVariants = cva(
         secondary:
           "bg-background text-secondary-foreground hover:bg-secondary/80 border border-primary text-foreground",
         action:
-          "bg-yellow-500 text-purple-950 hover:bg-opacity-70 hover:bg-yellow-500 hover:text-purple-950 fill-purple-950",
+          "bg-[#D4FF8B] text-[#212121] hover:bg-[#c8f57d] hover:text-[#212121] fill-[#212121]",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-[#675FEC] underline-offset-4 hover:underline",
         input:
           "rounded-xs bg-input items-center justify-between text-muted-foreground hover:text-foreground",
       },

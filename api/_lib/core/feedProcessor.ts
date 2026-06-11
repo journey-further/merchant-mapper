@@ -23,9 +23,8 @@ export function deriveAgeGenderSegment(rows: Row[]): Row[] {
   const cols = Object.keys(rows[0])
   const genderCol = findCol(cols, ['gender', 'sex', 'targetgender', 'productgender'])
   const ageCol = findCol(cols, ['agegroup', 'age', 'targetage', 'agerange'])
-  if (!genderCol && !ageCol) return rows
 
-  return rows.map(row => {
+  for (const row of rows) {
     const gender = String(row[genderCol ?? ''] ?? '').toLowerCase().trim()
     const age = String(row[ageCol ?? ''] ?? '').toLowerCase().trim()
     let segment = ''
@@ -40,9 +39,9 @@ export function deriveAgeGenderSegment(rows: Row[]): Row[] {
     } else if (gender === 'unisex') {
       segment = 'unisex'
     }
-    // Always add the key so the column appears consistently in column metadata
-    return { ...row, 'Age Gender Segment': segment }
-  })
+    row['Age Gender Segment'] = segment
+  }
+  return rows
 }
 
 // --- Column selection ---

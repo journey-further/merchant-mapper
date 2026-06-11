@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Button } from '../../ui/button';
 import { applyColumns } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
@@ -7,7 +8,7 @@ import DataTable from '../shared/DataTable';
 
 export default function ColumnPicker() {
   const queryClient = useQueryClient();
-  const { sessionId, rawDfBlobUrl, keepMap, setKeepMap } = useWorkflowStore();
+  const { sessionId, rawDfBlobUrl, keepMap, feedDataReady, setKeepMap, setFeedDataReady } = useWorkflowStore();
 
   const query = useQuery({
     queryKey: ['columns', sessionId, rawDfBlobUrl, keepMap],
@@ -19,6 +20,12 @@ export default function ColumnPicker() {
       }),
     enabled: !!sessionId && !!rawDfBlobUrl,
   });
+
+  useEffect(() => {
+    if (!feedDataReady && (query.isSuccess || query.isError)) {
+      setFeedDataReady();
+    }
+  }, [query.isSuccess, query.isError, feedDataReady, setFeedDataReady]);
 
   async function runAction(action: 'recommended' | 'all' | 'none' | 'invert') {
     if (!sessionId || !rawDfBlobUrl) return;
