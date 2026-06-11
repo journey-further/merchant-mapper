@@ -204,6 +204,15 @@
     accent-color: #675FEC;
   }
 
+  .link {
+    color: #675FEC;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .link:hover {
+    color: #5249d9;
+  }
+
   .font-semibold,
   .font-bold {
     @apply text-foreground;

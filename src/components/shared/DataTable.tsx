@@ -108,7 +108,7 @@ export default function DataTable({ rows, columns, maxHeight = '360px' }: DataTa
                         target="_blank"
                         rel="noopener noreferrer"
                         title={raw}
-                        style={{ color: 'var(--primary, #2563eb)', textDecoration: 'underline' }}
+                        className="link"
                       >
                         {display}
                       </a>
