@@ -4,7 +4,7 @@
   "regions": ["lhr1"],
   "functions": {
     "api/**/*.ts": {
-      "maxDuration": 60,
+      "maxDuration": 300,
       "memory": 3009,
       "includeFiles": "api/_lib/**"
     }

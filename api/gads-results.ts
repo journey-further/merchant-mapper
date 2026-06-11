@@ -15,9 +15,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const withVolume = new Set(finalView.filter(r => r.monthly_searches).map(r => r.keyword))
 
+    const STRIP = new Set(['year', 'month', 'date', 'monthly_searches'])
+    const seen = new Set<string>()
+    const previewRows = finalView
+      .filter(r => { const k = `${r.list_name}||${r.keyword}`; if (seen.has(k)) return false; seen.add(k); return true })
+      .map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !STRIP.has(k))))
+
     res.status(200).json({
       hasResults: finalView.length > 0,
-      preview: records(finalView),
+      preview: records(previewRows),
       totalRows: finalView.length,
       keywordsWithVolume: withVolume.size,
     })

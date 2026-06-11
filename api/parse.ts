@@ -34,6 +34,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!resp.ok) throw new Error(`Failed to fetch blob: ${resp.status}`)
 
     let buffer: Uint8Array | null = new Uint8Array(await resp.arrayBuffer())
+
+    // Hash the raw bytes before any decode/unzip so we don't need to keep a copy of text around.
+    const fileHash = crypto.createHash('md5').update(buffer).digest('hex')
+
     const isZip =
       String(filename).toLowerCase().endsWith('.zip') ||
       (buffer.length >= 4 &&
@@ -50,8 +54,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       effectiveFilename = filename
     }
     buffer = null // release ~180 MB before PapaParse allocates Row[]
-
-    const fileHash = crypto.createHash('md5').update(text).digest('hex')
 
     const ext = String(effectiveFilename).toLowerCase()
     const delimiter = ext.endsWith('.tsv') || ext.endsWith('.txt') ? '\t' : ','
